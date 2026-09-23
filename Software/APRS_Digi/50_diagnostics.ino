@@ -76,7 +76,7 @@ const __FlashStringHelper *digiDecisionText(DigiDecision decision) {
 
 void printConfiguration() {
   DBG_PRINTLN();
-  DBG_PRINTLN(F("=== Arduino APRS Digipeater 2026 configuration ==="));
+  DBG_PRINTLN(F("=== Arduino APRS Digipeater configuration ==="));
 
   DBG_PRINT(F("Config armed:   "));
   DBG_PRINTLN(CONFIGURATION_CONFIRMED ? F("YES") : F("NO - RF TX disabled"));

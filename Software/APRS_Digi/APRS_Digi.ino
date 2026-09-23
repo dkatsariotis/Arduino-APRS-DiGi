@@ -1,5 +1,5 @@
 /*
-  Arduino APRS Digipeater 2026 - Arduino Uno / ATmega328P
+  Arduino APRS Digipeater - Arduino Uno / ATmega328P
 
   Self-contained Arduino IDE project.
 
@@ -307,7 +307,7 @@ void setup() {
     wdt_enable(WDTO_8S);
   }
 
-  DBG_PRINTLN(F("Arduino APRS Digipeater 2026 ready."));
+  DBG_PRINTLN(F("Arduino APRS Digipeater ready."));
 }
 
 void loop() {

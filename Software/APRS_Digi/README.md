@@ -1,4 +1,4 @@
-# Arduino APRS Digipeater 2026
+# Arduino APRS Digipeater
 
 Source-only Arduino IDE project for a 1200-baud APRS digipeater on **Arduino Uno / ATmega328P**.
 No precompiled HEX or external firmware generator is required.
@@ -23,8 +23,8 @@ The modem / AX.25 code is bundled under `src/LibAPRS_Digi`, so there is no separ
 
 ## Open in Arduino IDE
 
-1. Keep the project folder named `Arduino_APRS_Digipeater_2026`.
-2. Open `Arduino_APRS_Digipeater_2026.ino`.
+1. Keep the project folder named `APRS_Digi`.
+2. Open `APRS_Digi.ino`.
 3. Select **Tools -> Board -> Arduino AVR Boards -> Arduino Uno**.
 4. Select the correct serial port.
 5. Edit the **USER CONFIGURATION** section.
@@ -34,7 +34,7 @@ The modem / AX.25 code is bundled under `src/LibAPRS_Digi`, so there is no separ
 
 ## User configuration
 
-Normal sysop settings are grouped near the top of `Arduino_APRS_Digipeater_2026.ino`.
+Normal sysop settings are grouped near the top of `APRS_Digi.ino`.
 The public template starts like this:
 
 ```cpp
@@ -260,7 +260,7 @@ const char APRS_TOCALL[] = "APZDIY";
 
 ## Files / Arduino tabs
 
-- `Arduino_APRS_Digipeater_2026.ino` - user configuration, state, `setup()` and `loop()`
+- `APRS_Digi.ino` - user configuration, state, `setup()` and `loop()`
 - `05_utils.ino` - configuration validation and AX.25 helpers
 - `10_radio.ino` - PTT, channel-busy logic and TX safety
 - `20_beacon.ino` - position beacon, comments and path scheduler
