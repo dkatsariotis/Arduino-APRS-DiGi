@@ -57,10 +57,10 @@ const char APRS_PHG[] = "PHG6750";
 // Two alternating position comments. The first successful periodic/boot beacon
 // uses COMMENT_1, the next COMMENT_2, then COMMENT_1 again, and so on.
 // Keep APRS_PHG + each comment <= 43 characters for the classic position-comment
-// field. Both defaults retain the requested memorial text.
+// field. COMMENT_1 mirrors the old site/ASL beacon; COMMENT_2 is the memorial.
 const bool BEACON_ALTERNATE_COMMENTS = true;
-const char APRS_COMMENT_1[] = "/W2 DiGi 144.800 in memory of SV3CYL";
-const char APRS_COMMENT_2[] = "/W2 DiGi Patras in memory of SV3CYL";
+const char APRS_COMMENT_1[] = "/MINTILOGLI-PATRAS/ASL.22m/";
+const char APRS_COMMENT_2[] = "/in memory of SV3CYL SK";
 
 // ---- Periodic beacon ---------------------------------------------------------
 const uint16_t BEACON_INTERVAL_MINUTES = 15;

@@ -35,3 +35,9 @@ Changed for digipeater operation:
 - comment `/W2 DiGi 144.800 in memory of SV3CYL`
 - 15 minute base beacon interval
 - proportional own-beacon paths: DIRECT / WIDE2-1 / DIRECT / WIDE2-2
+
+## 2026-09-23 - Beacon comment profile
+
+- COMMENT_1 set to `/MINTILOGLI-PATRAS/ASL.22m/` to preserve the former site/ASL style.
+- COMMENT_2 set to `/in memory of SV3CYL SK`.
+- Periodic/boot sequence remains COMMENT_1, COMMENT_2, COMMENT_1, COMMENT_2...

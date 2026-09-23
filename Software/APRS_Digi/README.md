@@ -56,8 +56,8 @@ const char APRS_SYMBOL_CODE = '#';
 const char APRS_PHG[] = "PHG6750";
 
 const bool BEACON_ALTERNATE_COMMENTS = true;
-const char APRS_COMMENT_1[] = "/W2 DiGi 144.800 in memory of SV3CYL";
-const char APRS_COMMENT_2[] = "/W2 DiGi Patras in memory of SV3CYL";
+const char APRS_COMMENT_1[] = "/MINTILOGLI-PATRAS/ASL.22m/";
+const char APRS_COMMENT_2[] = "/in memory of SV3CYL SK";
 
 const uint16_t BEACON_INTERVAL_MINUTES = 15;
 ```
@@ -71,7 +71,13 @@ The decimal position is converted automatically to the classic APRS on-air form:
 The first periodic/boot beacon therefore has an information field such as:
 
 ```text
-!3811.24N/02142.38E#PHG6750/W2 DiGi 144.800 in memory of SV3CYL
+!3811.24N/02142.38E#PHG6750/MINTILOGLI-PATRAS/ASL.22m/
+
+Alternating memorial beacon:
+
+```text
+!3811.24N/02142.38E#PHG6750/in memory of SV3CYL SK
+```
 ```
 
 The next successful periodic beacon uses `APRS_COMMENT_2`, then the sequence loops.
