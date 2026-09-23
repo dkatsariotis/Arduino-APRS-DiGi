@@ -1,6 +1,0 @@
-^Default
-
-syntax: glob
-Build/firmware.*
-src/*.o
-
