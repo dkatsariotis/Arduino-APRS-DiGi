@@ -95,7 +95,7 @@ bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
   radioTxActive = false;
 
   if (timedOut) {
-    Serial.println(F("TX ERROR: timeout, PTT forced OFF"));
+    DBG_PRINTLN(F("TX ERROR: timeout, PTT forced OFF"));
     return false;
   }
 

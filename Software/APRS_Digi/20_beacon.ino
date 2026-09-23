@@ -20,7 +20,7 @@ static bool buildBeaconInfo(const char *comment) {
                          comment);
 
   if (written < 0 || written >= (int)sizeof(beaconInfo)) {
-    Serial.println(F("BEACON ERROR: information field too long"));
+    DBG_PRINTLN(F("BEACON ERROR: information field too long"));
     return false;
   }
   return true;
@@ -52,21 +52,21 @@ static bool sendOwnBeaconVia(const char *label,
   AX25Call path[4];
   uint8_t pathLen = buildOwnPath(path, path1Call, path1Ssid, path2Call, path2Ssid);
 
-  Serial.print(F("BEACON TX ["));
-  Serial.print(label);
-  Serial.print(F("] "));
+  DBG_PRINT(F("BEACON TX ["));
+  DBG_PRINT(label);
+  DBG_PRINT(F("] "));
   printPath(path, pathLen, 0);
-  Serial.print(F(":"));
-  Serial.println(beaconInfo);
+  DBG_PRINT(F(":"));
+  DBG_PRINTLN(beaconInfo);
 
   if (transmitFrame(path, pathLen, 0,
                     (const uint8_t *)beaconInfo, strlen(beaconInfo),
                     BEACON_MAX_CHANNEL_WAIT_MS)) {
-    statBeaconTx++;
+    
     return true;
   }
 
-  Serial.println(F("BEACON deferred/skipped: channel not available"));
+  DBG_PRINTLN(F("BEACON deferred/skipped: channel not available"));
   return false;
 }
 
@@ -144,9 +144,9 @@ void scheduleNextBeacon() {
 
   nextBeaconAt = millis() + (unsigned long)delaySigned;
 
-  Serial.print(F("Next beacon in "));
-  Serial.print((unsigned long)delaySigned / 1000UL);
-  Serial.println(F(" s"));
+  DBG_PRINT(F("Next beacon in "));
+  DBG_PRINT((unsigned long)delaySigned / 1000UL);
+  DBG_PRINTLN(F(" s"));
 }
 
 void serviceBeaconScheduler() {
@@ -159,8 +159,8 @@ void serviceBeaconScheduler() {
   } else {
     nextBeaconAt = millis() +
                    ((unsigned long)BEACON_RETRY_AFTER_BUSY_SECONDS * 1000UL);
-    Serial.print(F("Beacon retry in "));
-    Serial.print(BEACON_RETRY_AFTER_BUSY_SECONDS);
-    Serial.println(F(" s"));
+    DBG_PRINT(F("Beacon retry in "));
+    DBG_PRINT(BEACON_RETRY_AFTER_BUSY_SECONDS);
+    DBG_PRINTLN(F(" s"));
   }
 }

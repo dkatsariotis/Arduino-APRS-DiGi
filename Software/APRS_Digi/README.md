@@ -1,4 +1,4 @@
-# Arduino APRS Digipeater
+# Arduino APRS Digipeater 2026
 
 Source-only Arduino IDE project for a 1200-baud APRS digipeater on **Arduino Uno / ATmega328P**.
 No precompiled HEX or external firmware generator is required.
@@ -23,8 +23,8 @@ The modem / AX.25 code is bundled under `src/LibAPRS_Digi`, so there is no separ
 
 ## Open in Arduino IDE
 
-1. Keep the project folder named `APRS_Digi`.
-2. Open `APRS_Digi.ino`.
+1. Keep the project folder named `Arduino_APRS_Digipeater_2026`.
+2. Open `Arduino_APRS_Digipeater_2026.ino`.
 3. Select **Tools -> Board -> Arduino AVR Boards -> Arduino Uno**.
 4. Select the correct serial port.
 5. Edit the **USER CONFIGURATION** section.
@@ -34,7 +34,7 @@ The modem / AX.25 code is bundled under `src/LibAPRS_Digi`, so there is no separ
 
 ## User configuration
 
-Normal sysop settings are grouped near the top of `APRS_Digi.ino`.
+Normal sysop settings are grouped near the top of `Arduino_APRS_Digipeater_2026.ino`.
 The public template starts like this:
 
 ```cpp
@@ -260,7 +260,7 @@ const char APRS_TOCALL[] = "APZDIY";
 
 ## Files / Arduino tabs
 
-- `APRS_Digi.ino` - user configuration, state, `setup()` and `loop()`
+- `Arduino_APRS_Digipeater_2026.ino` - user configuration, state, `setup()` and `loop()`
 - `05_utils.ino` - configuration validation and AX.25 helpers
 - `10_radio.ino` - PTT, channel-busy logic and TX safety
 - `20_beacon.ino` - position beacon, comments and path scheduler
@@ -286,3 +286,62 @@ The bundled `src/LibAPRS_Digi` directory retains its upstream license file. Keep
 ## Build status
 
 The high-level path engine and sketch structure were host-tested during development, but each public-repository revision should still be **Verify/Compile** tested using the Arduino IDE / Arduino AVR Boards toolchain before RF use.
+
+## Arduino IDE folder layout
+
+The sketch directory must be kept intact. The expected layout is:
+
+```text
+APRS_Digi/
+  APRS_Digi.ino
+  05_utils.ino
+  10_radio.ino
+  20_beacon.ino
+  30_digipeater.ino
+  40_button.ino
+  50_diagnostics.ino
+  src/
+    LibAPRS_Digi/
+      LibAPRS.h
+      LibAPRS.cpp
+      AFSK.h
+      AFSK.cpp
+      AX25.h
+      AX25.cpp
+      ...
+```
+
+Do not copy only the `.ino` files. The bundled modem library under `src/LibAPRS_Digi/` is part of the sketch and is required for compilation.
+
+## ATmega328P SRAM note
+
+Arduino Uno has only 2048 bytes of SRAM. This project uses a lean LibAPRS_Digi
+wrapper which removes the old tracker/location/message state that the digipeater
+does not use. Serial diagnostic string literals use Arduino's `F()` macro, so
+those literals remain in flash instead of being copied to SRAM.
+
+The large remaining SRAM consumers are intentional modem/network buffers:
+AFSK RX/TX FIFOs, the full AX.25 receive frame buffer, the pending relay frame,
+and the duplicate-suppression cache. They should not be reduced casually just
+to silence the IDE memory warning.
+
+
+### Serial diagnostics and SRAM
+
+The Uno has only 2048 bytes of SRAM. `ENABLE_SERIAL_DIAGNOSTICS` is a compile-time
+switch in `APRS_Digi.ino`:
+
+```cpp
+#define ENABLE_SERIAL_DIAGNOSTICS 0
+```
+
+`0` is recommended for unattended production use. All debug output is compiled
+out and the sketch does not reference Arduino `Serial`, allowing the linker to
+omit HardwareSerial buffers. Set it to `1` during bench testing when you need the
+Serial Monitor. All fixed diagnostic strings use `F()` and therefore remain in
+flash rather than SRAM when diagnostics are enabled.
+
+This build also uses a lean LibAPRS_Digi wrapper: the legacy tracker/location/
+message configuration state was removed because the digipeater sends frames
+directly through the AX.25 API. The full AX.25 frame size, 256-byte APRS info
+relay capacity, AFSK FIFOs and duplicate cache are intentionally retained.

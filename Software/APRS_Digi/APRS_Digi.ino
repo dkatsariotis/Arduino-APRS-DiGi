@@ -24,6 +24,22 @@
 #define ADC_REFERENCE REF_5V
 #define OPEN_SQUELCH false
 
+// Master compile-time serial diagnostics switch.
+// 0 = no Arduino Serial dependency/buffers; 1 = Serial Monitor diagnostics.
+#define ENABLE_SERIAL_DIAGNOSTICS 0
+
+#if ENABLE_SERIAL_DIAGNOSTICS
+  #define DBG_BEGIN(...)    Serial.begin(__VA_ARGS__)
+  #define DBG_PRINT(...)    Serial.print(__VA_ARGS__)
+  #define DBG_PRINTLN(...)  Serial.println(__VA_ARGS__)
+  #define DBG_WRITE(...)    Serial.write(__VA_ARGS__)
+#else
+  #define DBG_BEGIN(...)    do { } while (0)
+  #define DBG_PRINT(...)    do { } while (0)
+  #define DBG_PRINTLN(...)  do { } while (0)
+  #define DBG_WRITE(...)    do { } while (0)
+#endif
+
 // =============================================================================
 // USER CONFIGURATION - edit this section in Arduino IDE
 // =============================================================================
@@ -149,9 +165,15 @@ const unsigned long BUTTON_DEBOUNCE_MS = 50;
 const unsigned long BUTTON_HOLD_TIMEOUT_MS = 5000;
 
 // ---- Diagnostics / safety ----------------------------------------------------
+// Set to 0 for an unattended production digi on ATmega328P. When disabled,
+// every debug print is removed at compile time and Arduino HardwareSerial is
+// not referenced by this sketch, freeing its SRAM buffers.
 const uint32_t SERIAL_BAUD = 115200UL;
 const bool SERIAL_LOG_RX_PACKETS = true;
 const bool SERIAL_LOG_DROPS = true;
+// Serial text literals already use F(), so they stay in flash rather than SRAM.
+// Set these logging flags false if you want less serial/flash overhead; the
+// main SRAM saving comes from the lean LibAPRS_Digi wrapper, not from prints.
 const bool ENABLE_WATCHDOG = false;  // enable only after bench testing
 
 // =============================================================================
@@ -160,7 +182,7 @@ const bool ENABLE_WATCHDOG = false;  // enable only after bench testing
 
 #define DIGI_DUPE_CACHE_SIZE 16
 #define DIGI_MAX_INFO_LEN 256
-#define BEACON_INFO_BUFFER_SIZE 100
+#define BEACON_INFO_BUFFER_SIZE 72
 
 struct DupeEntry {
   uint32_t hash;
@@ -211,11 +233,6 @@ uint8_t dupeCacheNext = 0;
 unsigned long nextBeaconAt = 0;
 uint8_t beaconSequence = 0;
 
-uint32_t statRxPackets = 0;
-uint32_t statDigiTx = 0;
-uint32_t statBeaconTx = 0;
-uint32_t statDuplicates = 0;
-uint32_t statDropped = 0;
 
 // Forward declarations.
 void forcePttOff();
@@ -251,7 +268,7 @@ void setup() {
   forcePttOff();
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  Serial.begin(SERIAL_BAUD);
+  DBG_BEGIN(SERIAL_BAUD);
   delay(100);
 
   randomSeed(micros() ^ analogRead(A5));
@@ -260,10 +277,6 @@ void setup() {
                                               aprsLat, aprsLon);
 
   APRS_init(ADC_REFERENCE, OPEN_SQUELCH);
-  APRS_setCallsign((char *)STATION_CALLSIGN, STATION_SSID);
-  APRS_setDestination((char *)APRS_TOCALL, APRS_TOCALL_SSID);
-  APRS_setPath1((char *)"", 0);
-  APRS_setPath2((char *)"", 0);
   APRS_setPreamble(APRS_PREAMBLE_MS);
   APRS_setTail(APRS_TAIL_MS);
 
@@ -272,7 +285,7 @@ void setup() {
   printConfiguration();
 
   if (!stationConfigValid) {
-    Serial.println(F("CONFIG ERROR: RF transmission disabled until settings are corrected."));
+    DBG_PRINTLN(F("CONFIG ERROR: RF transmission disabled until settings are corrected."));
     nextBeaconAt = ULONG_MAX;
   } else {
     if (BEACON_ON_BOOT) {
@@ -286,7 +299,7 @@ void setup() {
     wdt_enable(WDTO_8S);
   }
 
-  Serial.println(F("Arduino APRS Digipeater 2026 ready."));
+  DBG_PRINTLN(F("Arduino APRS Digipeater 2026 ready."));
 }
 
 void loop() {

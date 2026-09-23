@@ -3,10 +3,10 @@
 // -----------------------------------------------------------------------------
 
 static void printAddress(const AX25Call &a) {
-  Serial.print(a.call);
+  DBG_PRINT(a.call);
   if (a.ssid > 0) {
-    Serial.print('-');
-    Serial.print(a.ssid);
+    DBG_PRINT('-');
+    DBG_PRINT(a.ssid);
   }
 }
 
@@ -25,35 +25,35 @@ void printPath(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask) {
   // asterisk only after the last used repeater; earlier used addresses are
   // implied even though their AX.25 H bits remain set on air.
   printAddress(path[1]);
-  Serial.print('>');
+  DBG_PRINT('>');
   printAddress(path[0]);
 
   uint8_t rptCount = pathLen - 2;
   int8_t lastUsed = lastUsedRepeater(repeatedMask, rptCount);
   for (uint8_t i = 2; i < pathLen; ++i) {
-    Serial.print(',');
+    DBG_PRINT(',');
     printAddress(path[i]);
-    if ((int8_t)(i - 2) == lastUsed) Serial.print('*');
+    if ((int8_t)(i - 2) == lastUsed) DBG_PRINT('*');
   }
 }
 
 void printPacket(const AX25Msg *msg) {
   printAddress(msg->src);
-  Serial.print('>');
+  DBG_PRINT('>');
   printAddress(msg->dst);
 
   int8_t lastUsed = lastUsedRepeater(msg->rpt_flags, msg->rpt_count);
   for (uint8_t i = 0; i < msg->rpt_count; ++i) {
-    Serial.print(',');
+    DBG_PRINT(',');
     printAddress(msg->rpt_list[i]);
-    if ((int8_t)i == lastUsed) Serial.print('*');
+    if ((int8_t)i == lastUsed) DBG_PRINT('*');
   }
 
-  Serial.print(':');
+  DBG_PRINT(':');
   for (size_t i = 0; i < msg->len; ++i) {
-    Serial.write(msg->info[i]);
+    DBG_WRITE(msg->info[i]);
   }
-  Serial.println();
+  DBG_PRINTLN();
 }
 
 const __FlashStringHelper *digiDecisionText(DigiDecision decision) {
@@ -75,79 +75,79 @@ const __FlashStringHelper *digiDecisionText(DigiDecision decision) {
 }
 
 void printConfiguration() {
-  Serial.println();
-  Serial.println(F("=== Arduino APRS Digipeater 2026 configuration ==="));
+  DBG_PRINTLN();
+  DBG_PRINTLN(F("=== Arduino APRS Digipeater 2026 configuration ==="));
 
-  Serial.print(F("Config armed:   "));
-  Serial.println(CONFIGURATION_CONFIRMED ? F("YES") : F("NO - RF TX disabled"));
+  DBG_PRINT(F("Config armed:   "));
+  DBG_PRINTLN(CONFIGURATION_CONFIRMED ? F("YES") : F("NO - RF TX disabled"));
 
-  Serial.print(F("Station:        "));
-  Serial.print(STATION_CALLSIGN);
-  Serial.print('-');
-  Serial.println(STATION_SSID);
+  DBG_PRINT(F("Station:        "));
+  DBG_PRINT(STATION_CALLSIGN);
+  DBG_PRINT('-');
+  DBG_PRINTLN(STATION_SSID);
 
-  Serial.print(F("TOCALL:         "));
-  Serial.println(APRS_TOCALL);
+  DBG_PRINT(F("TOCALL:         "));
+  DBG_PRINTLN(APRS_TOCALL);
 
-  Serial.print(F("Position:       "));
-  Serial.print(aprsLat);
-  Serial.print(' ');
-  Serial.println(aprsLon);
+  DBG_PRINT(F("Position:       "));
+  DBG_PRINT(aprsLat);
+  DBG_PRINT(' ');
+  DBG_PRINTLN(aprsLon);
 
-  Serial.print(F("Symbol:         "));
-  Serial.print(APRS_SYMBOL_TABLE);
-  Serial.println(APRS_SYMBOL_CODE);
+  DBG_PRINT(F("Symbol:         "));
+  DBG_PRINT(APRS_SYMBOL_TABLE);
+  DBG_PRINTLN(APRS_SYMBOL_CODE);
 
-  Serial.print(F("PHG:            "));
-  Serial.println(APRS_PHG);
+  DBG_PRINT(F("PHG:            "));
+  DBG_PRINTLN(APRS_PHG);
 
-  Serial.print(F("Comment 1:      "));
-  Serial.println(APRS_COMMENT_1);
+  DBG_PRINT(F("Comment 1:      "));
+  DBG_PRINTLN(APRS_COMMENT_1);
 
-  Serial.print(F("Comment 2:      "));
-  Serial.println(APRS_COMMENT_2);
+  DBG_PRINT(F("Comment 2:      "));
+  DBG_PRINTLN(APRS_COMMENT_2);
 
-  Serial.print(F("Comment loop:   "));
-  Serial.println(BEACON_ALTERNATE_COMMENTS ? F("1 / 2 / 1 / 2") : F("comment 1 only"));
+  DBG_PRINT(F("Comment loop:   "));
+  DBG_PRINTLN(BEACON_ALTERNATE_COMMENTS ? F("1 / 2 / 1 / 2") : F("comment 1 only"));
 
-  Serial.print(F("Beacon every:   "));
-  Serial.print(BEACON_INTERVAL_MINUTES);
-  Serial.print(F(" min, jitter +/-"));
-  Serial.print(BEACON_JITTER_SECONDS);
-  Serial.println(F(" s"));
+  DBG_PRINT(F("Beacon every:   "));
+  DBG_PRINT(BEACON_INTERVAL_MINUTES);
+  DBG_PRINT(F(" min, jitter +/-"));
+  DBG_PRINT(BEACON_JITTER_SECONDS);
+  DBG_PRINTLN(F(" s"));
 
-  Serial.print(F("Beacon mode:    "));
-  if (BEACON_PATH_MODE == BEACON_PATH_DIRECT) Serial.println(F("DIRECT"));
-  else if (BEACON_PATH_MODE == BEACON_PATH_FIXED) Serial.println(F("FIXED"));
-  else Serial.println(F("PROPORTIONAL DIRECT / WIDE2-1 / DIRECT / WIDE2-2"));
+  DBG_PRINT(F("Beacon mode:    "));
+  if (BEACON_PATH_MODE == BEACON_PATH_DIRECT) DBG_PRINTLN(F("DIRECT"));
+  else if (BEACON_PATH_MODE == BEACON_PATH_FIXED) DBG_PRINTLN(F("FIXED"));
+  else DBG_PRINTLN(F("PROPORTIONAL DIRECT / WIDE2-1 / DIRECT / WIDE2-2"));
 
-  Serial.print(F("Digipeater:     "));
-  Serial.println(DIGI_ENABLED ? F("enabled") : F("disabled"));
+  DBG_PRINT(F("Digipeater:     "));
+  DBG_PRINTLN(DIGI_ENABLED ? F("enabled") : F("disabled"));
 
-  Serial.print(F("WIDE max n:     "));
-  Serial.println(DIGI_MAX_WIDE_N);
+  DBG_PRINT(F("WIDE max n:     "));
+  DBG_PRINTLN(DIGI_MAX_WIDE_N);
 
-  Serial.print(F("Large-N trap:   "));
-  Serial.println(DIGI_TRAP_LARGE_N ? F("enabled") : F("disabled"));
+  DBG_PRINT(F("Large-N trap:   "));
+  DBG_PRINTLN(DIGI_TRAP_LARGE_N ? F("enabled") : F("disabled"));
 
-  Serial.print(F("Dupe window:    "));
-  Serial.print(DIGI_DUPLICATE_WINDOW_MS / 1000UL);
-  Serial.println(F(" s"));
+  DBG_PRINT(F("Dupe window:    "));
+  DBG_PRINT(DIGI_DUPLICATE_WINDOW_MS / 1000UL);
+  DBG_PRINTLN(F(" s"));
 
-  Serial.println(F("Hardware:       RX=A2 PTT=D3 DAC=D4..D7 BUTTON=D8 TXLED=D13"));
-  Serial.println(F("DAC ladder:     D4=8k2 D5=3k9 D6=2k2 D7=1k"));
+  DBG_PRINTLN(F("Hardware:       RX=A2 PTT=D3 DAC=D4..D7 BUTTON=D8 TXLED=D13"));
+  DBG_PRINTLN(F("DAC ladder:     D4=8k2 D5=3k9 D6=2k2 D7=1k"));
 
-  Serial.print(F("Channel detect: "));
-  Serial.println(CHANNEL_BUSY_DETECT_ENABLED ? F("enabled") : F("disabled"));
+  DBG_PRINT(F("Channel detect: "));
+  DBG_PRINTLN(CHANNEL_BUSY_DETECT_ENABLED ? F("enabled") : F("disabled"));
 
-  Serial.print(F("Preamble/tail:  "));
-  Serial.print(APRS_PREAMBLE_MS);
-  Serial.print('/');
-  Serial.print(APRS_TAIL_MS);
-  Serial.println(F(" ms"));
+  DBG_PRINT(F("Preamble/tail:  "));
+  DBG_PRINT(APRS_PREAMBLE_MS);
+  DBG_PRINT('/');
+  DBG_PRINT(APRS_TAIL_MS);
+  DBG_PRINTLN(F(" ms"));
 
-  Serial.print(F("Free SRAM est.: "));
-  Serial.println(freeMemory());
-  Serial.println(F("==========================================="));
-  Serial.println();
+  DBG_PRINT(F("Free SRAM est.: "));
+  DBG_PRINTLN(freeMemory());
+  DBG_PRINTLN(F("==========================================="));
+  DBG_PRINTLN();
 }

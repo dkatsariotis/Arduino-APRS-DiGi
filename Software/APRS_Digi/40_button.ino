@@ -14,7 +14,7 @@ void handleManualButton() {
       if (digitalRead(BUTTON_PIN) == HIGH) {
         buttonLockout = false;
         previousButtonState = HIGH;
-        Serial.println(F("Button released; manual beacon re-enabled."));
+        DBG_PRINTLN(F("Button released; manual beacon re-enabled."));
       }
     }
     return;
@@ -26,7 +26,7 @@ void handleManualButton() {
     if (digitalRead(BUTTON_PIN) == LOW) {
       pressStartedAt = millis();
       previousButtonState = LOW;
-      Serial.println(F("Manual beacon button press detected."));
+      DBG_PRINTLN(F("Manual beacon button press detected."));
     }
     return;
   }
@@ -34,7 +34,7 @@ void handleManualButton() {
   // Still held.
   if (previousButtonState == LOW && currentButtonState == LOW) {
     if ((unsigned long)(millis() - pressStartedAt) > BUTTON_HOLD_TIMEOUT_MS) {
-      Serial.println(F("Button held too long; locked until release."));
+      DBG_PRINTLN(F("Button held too long; locked until release."));
       buttonLockout = true;
     }
     return;
@@ -48,13 +48,13 @@ void handleManualButton() {
       unsigned long pressDuration = millis() - pressStartedAt;
 
       if (pressDuration < BUTTON_MIN_PRESS_MS) {
-        Serial.print(F("Button ignored, short press ms="));
-        Serial.println(pressDuration);
+        DBG_PRINT(F("Button ignored, short press ms="));
+        DBG_PRINTLN(pressDuration);
         return;
       }
 
-      Serial.print(F("Manual beacon requested, press ms="));
-      Serial.println(pressDuration);
+      DBG_PRINT(F("Manual beacon requested, press ms="));
+      DBG_PRINTLN(pressDuration);
       manualBeaconRequested = true;
     }
     return;

@@ -190,10 +190,10 @@ void initDigipeater() {
 }
 
 void aprs_msg_callback(struct AX25Msg *msg) {
-  statRxPackets++;
+  
 
   if (SERIAL_LOG_RX_PACKETS) {
-    Serial.print(F("RX "));
+    DBG_PRINT(F("RX "));
     printPacket(msg);
   }
 
@@ -203,18 +203,18 @@ void aprs_msg_callback(struct AX25Msg *msg) {
   unsigned long now = millis();
 
   if (duplicateSeen(hash, now)) {
-    statDuplicates++;
-    if (SERIAL_LOG_DROPS) Serial.println(F("DIGI DROP: duplicate within window"));
+    
+    if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: duplicate within window"));
     return;
   }
 
   if (relayPending) {
     if (pendingRelay.hash == hash) {
-      statDuplicates++;
-      if (SERIAL_LOG_DROPS) Serial.println(F("DIGI DROP: duplicate already queued"));
+      
+      if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: duplicate already queued"));
     } else {
-      statDropped++;
-      if (SERIAL_LOG_DROPS) Serial.println(F("DIGI DROP: relay queue busy"));
+      
+      if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: relay queue busy"));
     }
     return;
   }
@@ -226,8 +226,8 @@ void aprs_msg_callback(struct AX25Msg *msg) {
         decision == DIGI_WIDE_INSERT ||
         decision == DIGI_WIDE_TRAP)) {
     if (SERIAL_LOG_DROPS && decision != DIGI_NO_PATH) {
-      Serial.print(F("DIGI DROP: "));
-      Serial.println(digiDecisionText(decision));
+      DBG_PRINT(F("DIGI DROP: "));
+      DBG_PRINTLN(digiDecisionText(decision));
     }
     return;
   }
@@ -243,11 +243,11 @@ void aprs_msg_callback(struct AX25Msg *msg) {
   pendingRelay.notBeforeMs = now + holdoff;
   relayPending = true;
 
-  Serial.print(F("DIGI QUEUE: "));
-  Serial.print(digiDecisionText(decision));
-  Serial.print(F(" -> "));
+  DBG_PRINT(F("DIGI QUEUE: "));
+  DBG_PRINT(digiDecisionText(decision));
+  DBG_PRINT(F(" -> "));
   printPath(pendingRelay.path, pendingRelay.pathLen, pendingRelay.repeatedMask);
-  Serial.println();
+  DBG_PRINTLN();
 }
 
 void serviceDigipeater() {
@@ -257,9 +257,9 @@ void serviceDigipeater() {
   unsigned long age = now - pendingRelay.queuedAtMs;
 
   if (age > DIGI_MAX_DEFER_MS) {
-    statDropped++;
+    
     relayPending = false;
-    if (SERIAL_LOG_DROPS) Serial.println(F("DIGI DROP: defer timeout"));
+    if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: defer timeout"));
     return;
   }
 
@@ -272,13 +272,13 @@ void serviceDigipeater() {
                     pendingRelay.infoLen,
                     DIGI_CHANNEL_WAIT_MS)) {
     rememberDuplicate(pendingRelay.hash, millis());
-    statDigiTx++;
-    Serial.print(F("DIGI TX: "));
+    
+    DBG_PRINT(F("DIGI TX: "));
     printPath(pendingRelay.path, pendingRelay.pathLen, pendingRelay.repeatedMask);
-    Serial.println();
+    DBG_PRINTLN();
   } else {
-    statDropped++;
-    if (SERIAL_LOG_DROPS) Serial.println(F("DIGI DROP: channel busy"));
+    
+    if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: channel busy"));
   }
 
   relayPending = false;
