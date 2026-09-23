@@ -76,7 +76,10 @@ const __FlashStringHelper *digiDecisionText(DigiDecision decision) {
 
 void printConfiguration() {
   Serial.println();
-  Serial.println(F("=== SV3GKD APRS Digi 2026 configuration ==="));
+  Serial.println(F("=== Arduino APRS Digipeater 2026 configuration ==="));
+
+  Serial.print(F("Config armed:   "));
+  Serial.println(CONFIGURATION_CONFIRMED ? F("YES") : F("NO - RF TX disabled"));
 
   Serial.print(F("Station:        "));
   Serial.print(STATION_CALLSIGN);

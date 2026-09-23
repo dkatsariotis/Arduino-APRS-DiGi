@@ -1,43 +1,33 @@
-# 2026 port notes
+# 2026 modernization notes
 
-## From the working SV3GKD beacon tracker
+This public-repository version modernizes an older Arduino/LibAPRS-style 1200-baud APRS modem/digipeater design for a maintainable Arduino IDE workflow.
 
-Retained / adapted:
+## Hardware/reference interface
 
-- D3 active-HIGH PTT
-- D4-D7 resistor DAC order: 8k2 / 3k9 / 2k2 / 1k
-- D8 manual push button behavior
-- 350 ms AFSK preamble
-- 80 ms AFSK tail
-- 150 ms radio key-up delay
-- 1000 ms minimum TX window
-- 30 ms post-TX PTT hold
-- 4000 ms TX safety timeout
 - Arduino Uno / ATmega328P target
+- A2 / ADC2 receive audio
+- D3 active-HIGH PTT
+- D4-D7 4-bit resistor DAC: 8k2 / 3k9 / 2k2 / 1k
+- D8 manual push button
+- D13 TX LED
+- DAC ISR preserves D0-D3 so D3 PTT can coexist with D4-D7 DAC
 
-Changed for digipeater operation:
+## Digipeater changes
 
-- A2 is now the actual 1200-baud AFSK receive ADC, not just a separate `analogRead()` carrier detector.
-- channel activity is derived from the continuous 9600 Hz ADC stream.
-- DAC ISR preserves D0-D3 so D3 PTT can coexist with D4-D7 DAC.
-- receive and transmit AX.25 path handling includes H bits.
-- added 30 s duplicate cache.
-- added traceable WIDE1-1 / WIDE2-n handling.
-- source, destination and information are preserved during digipeating.
-- legacy aliases are not serviced.
+- traceable WIDE1-1 / WIDE2-n handling
+- 30-second duplicate suppression
+- loop prevention
+- source, destination and information field preserved while digipeating
+- AX.25 H-bit handling in repeated paths
+- configurable large-N trap/reject behavior
+- legacy RELAY / bare WIDE / TRACE aliases not serviced
+- RF TCPIP/TCPXX paths rejected
 
-## Station defaults
+## Operator configuration
 
-- `SV3GKD-15`
-- coordinates `3811.24N / 02142.38E`
-- `/#` digipeater symbol
-- `PHG6750`
-- comment `/W2 DiGi 144.800 in memory of SV3CYL`
-- 15 minute base beacon interval
-- proportional own-beacon paths: DIRECT / WIDE2-1 / DIRECT / WIDE2-2
-
-## 2026-09-23 - Beacon comment profile
-
-- COMMENT_1 set to `/MINTILOGLI-PATRAS/ASL.22m/` to preserve the former site/ASL style.
-- COMMENT_2 set to `/in memory of SV3CYL SK`.
-- Periodic/boot sequence remains COMMENT_1, COMMENT_2, COMMENT_1, COMMENT_2...
+- decimal-degree latitude/longitude converted to APRS uncompressed coordinates
+- configurable callsign, SSID, symbol, PHG and comments
+- two alternating beacon comments
+- direct, fixed, or proportional own-beacon pathing
+- independent manual-beacon path
+- public-template RF safety interlock with `CONFIGURATION_CONFIRMED`

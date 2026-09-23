@@ -1,5 +1,5 @@
 /*
-  SV3GKD APRS Digipeater 2026 - Arduino Uno / ATmega328P
+  Arduino APRS Digipeater 2026 - Arduino Uno / ATmega328P
 
   Self-contained Arduino IDE project.
 
@@ -29,38 +29,43 @@
 // =============================================================================
 
 // ---- Station identity --------------------------------------------------------
-const char STATION_CALLSIGN[] = "SV3GKD";
-const uint8_t STATION_SSID = 15;
+// Safe public-repository default. RF TX stays disabled until you have edited
+// the station settings and explicitly changed CONFIGURATION_CONFIRMED to true.
+const bool CONFIGURATION_CONFIRMED = false;
 
-// APBK?? is allocated to PY5BK Bravo Tracker. This independent firmware uses
-// an APZ... experimental TOCALL until/unless a dedicated identifier is assigned.
-const char APRS_TOCALL[] = "APZ3GK";
+const char STATION_CALLSIGN[] = "NOCALL";  // change to your licensed callsign
+const uint8_t STATION_SSID = 15;           // choose an SSID appropriate for your station
+
+// APZxxx is the APRS experimental/development TOCALL family. If this firmware
+// becomes a named/distributed product, obtain/use an appropriate registered
+// device identifier instead of treating this placeholder as a permanent ID.
+const char APRS_TOCALL[] = "APZDIY";
 const uint8_t APRS_TOCALL_SSID = 0;
 
 // ---- Position / symbol / PHG / comments -------------------------------------
 // Enter ordinary decimal degrees here. South/West are negative.
-// The firmware converts these to standard APRS uncompressed DDMM.mm/DDDMM.mm
-// coordinates at startup. With the values below the transmitted position is:
-//   3811.24N / 02142.38E
-// This is about 6.5 m from the supplied decimal coordinate because the classic
-// uncompressed APRS format has 0.01 minute position resolution.
-const double STATION_LATITUDE = 38.1873919;
-const double STATION_LONGITUDE = 21.70633239;
+// The firmware converts them at startup to classic uncompressed APRS
+// DDMM.mmN/S and DDDMM.mmE/W coordinates.
+// 0.0 / 0.0 is intentionally only a placeholder for the public template.
+const double STATION_LATITUDE = 0.0;
+const double STATION_LONGITUDE = 0.0;
 
 // Digipeater symbol = /# (primary table + '#').
 const char APRS_SYMBOL_TABLE = '/';
 const char APRS_SYMBOL_CODE = '#';
 
-// Keep PHG immediately after the symbol, with no space.
-const char APRS_PHG[] = "PHG6750";
+// Optional PHG extension. Leave empty until you have calculated/verified it.
+// If used, keep the complete seven-character field here, e.g. "PHG5130".
+// It is transmitted immediately after the APRS symbol, with no added space.
+const char APRS_PHG[] = "";
 
 // Two alternating position comments. The first successful periodic/boot beacon
 // uses COMMENT_1, the next COMMENT_2, then COMMENT_1 again, and so on.
 // Keep APRS_PHG + each comment <= 43 characters for the classic position-comment
-// field. COMMENT_1 mirrors the old site/ASL beacon; COMMENT_2 is the memorial.
+// field. Set BEACON_ALTERNATE_COMMENTS=false to always use COMMENT_1.
 const bool BEACON_ALTERNATE_COMMENTS = true;
-const char APRS_COMMENT_1[] = "/MINTILOGLI-PATRAS/ASL.22m/";
-const char APRS_COMMENT_2[] = "/in memory of SV3CYL SK";
+const char APRS_COMMENT_1[] = "/W2 APRS DIGI";
+const char APRS_COMMENT_2[] = "/Arduino APRS Digipeater";
 
 // ---- Periodic beacon ---------------------------------------------------------
 const uint16_t BEACON_INTERVAL_MINUTES = 15;
@@ -122,7 +127,7 @@ const uint16_t DIGI_MAX_DEFER_MS = 1200;
 const uint16_t DIGI_CHANNEL_WAIT_MS = 250;
 
 // ---- AFSK / radio timing -----------------------------------------------------
-// These values come from the working fixed-beacon project for this hardware.
+// Conservative starting values for the reference hardware. Tune only after bench/RF testing.
 const unsigned long APRS_PREAMBLE_MS = 350;
 const unsigned long APRS_TAIL_MS = 80;
 const unsigned long RADIO_KEYUP_MS = 150;
@@ -281,7 +286,7 @@ void setup() {
     wdt_enable(WDTO_8S);
   }
 
-  Serial.println(F("SV3GKD APRS Digi 2026 ready."));
+  Serial.println(F("Arduino APRS Digipeater 2026 ready."));
 }
 
 void loop() {

@@ -1,9 +1,13 @@
-# SV3GKD-15 APRS Digipeater 2026
+# Arduino APRS Digipeater 2026
 
-Source-only Arduino IDE project for an Arduino Uno / ATmega328P APRS 1200-baud digipeater.
-No precompiled HEX is required.
+Source-only Arduino IDE project for a 1200-baud APRS digipeater on **Arduino Uno / ATmega328P**.
+No precompiled HEX or external firmware generator is required.
 
-The project is tailored to the existing SV3GKD hardware:
+The sketch is intentionally **safe by default for a public repository**: it ships with `NOCALL`, placeholder coordinates, and `CONFIGURATION_CONFIRMED = false`. RF transmission remains disabled until the operator edits the configuration and explicitly confirms it.
+
+## Reference hardware
+
+The bundled modem code is configured for this pinout:
 
 - RX audio: **A2 / ADC2**
 - PTT: **D3**, active HIGH
@@ -15,94 +19,124 @@ The project is tailored to the existing SV3GKD hardware:
 - manual beacon push button: **D8 to GND**, using `INPUT_PULLUP`
 - TX LED: **D13**
 
-The modem / AX.25 code is bundled under `src/LibAPRS_Digi`, so there is no separate Library Manager dependency.
-You only need the normal **Arduino AVR Boards** core and select **Arduino Uno** in Arduino IDE.
+The modem / AX.25 code is bundled under `src/LibAPRS_Digi`, so there is no separate Arduino Library Manager dependency. Install the normal **Arduino AVR Boards** core and select **Arduino Uno**.
 
 ## Open in Arduino IDE
 
-1. Keep the whole folder named `SV3GKD_APRS_Digi_2026`.
-2. Open `SV3GKD_APRS_Digi_2026.ino`.
+1. Keep the project folder named `Arduino_APRS_Digipeater_2026`.
+2. Open `Arduino_APRS_Digipeater_2026.ino`.
 3. Select **Tools -> Board -> Arduino AVR Boards -> Arduino Uno**.
 4. Select the correct serial port.
-5. First use **Sketch -> Verify/Compile**.
-6. Bench-test PTT/audio before connecting the radio to an antenna.
-7. Upload only after the configuration shown on Serial Monitor is correct.
+5. Edit the **USER CONFIGURATION** section.
+6. Use **Sketch -> Verify/Compile**.
+7. Bench-test PTT and AFSK audio before connecting the transmitter to an antenna.
+8. Only after all settings have been verified, set `CONFIGURATION_CONFIRMED = true`, compile again, and upload.
 
-## Normal configuration
+## User configuration
 
-Almost everything normally changed by the sysop is at the top of
-`SV3GKD_APRS_Digi_2026.ino`, between:
-
-```cpp
-// USER CONFIGURATION
-...
-// END USER CONFIGURATION
-```
-
-The important settings are:
+Normal sysop settings are grouped near the top of `Arduino_APRS_Digipeater_2026.ino`.
+The public template starts like this:
 
 ```cpp
-const char STATION_CALLSIGN[] = "SV3GKD";
+const bool CONFIGURATION_CONFIRMED = false;
+
+const char STATION_CALLSIGN[] = "NOCALL";
 const uint8_t STATION_SSID = 15;
 
-const char APRS_TOCALL[] = "APZ3GK";
+const char APRS_TOCALL[] = "APZDIY";
+const uint8_t APRS_TOCALL_SSID = 0;
 
-const double STATION_LATITUDE = 38.1873919;
-const double STATION_LONGITUDE = 21.70633239;
+const double STATION_LATITUDE = 0.0;
+const double STATION_LONGITUDE = 0.0;
 
 const char APRS_SYMBOL_TABLE = '/';
 const char APRS_SYMBOL_CODE = '#';
 
-const char APRS_PHG[] = "PHG6750";
+const char APRS_PHG[] = "";
 
 const bool BEACON_ALTERNATE_COMMENTS = true;
-const char APRS_COMMENT_1[] = "/MINTILOGLI-PATRAS/ASL.22m/";
-const char APRS_COMMENT_2[] = "/in memory of SV3CYL SK";
+const char APRS_COMMENT_1[] = "/W2 APRS DIGI";
+const char APRS_COMMENT_2[] = "/Arduino APRS Digipeater";
 
 const uint16_t BEACON_INTERVAL_MINUTES = 15;
 ```
 
-The decimal position is converted automatically to the classic APRS on-air form:
+At minimum, review/change:
 
-```text
-3811.24N / 02142.38E
+- `STATION_CALLSIGN`
+- `STATION_SSID`
+- `STATION_LATITUDE` / `STATION_LONGITUDE`
+- APRS symbol table/code
+- `APRS_PHG` if used
+- one or both comments
+- beacon interval
+- own-beacon path mode and WIDE paths
+- digipeater WIDE policy for your local network
+- PTT polarity/timing for your radio interface
+- finally, `CONFIGURATION_CONFIRMED = true`
+
+## Decimal coordinates
+
+Enter normal decimal degrees. South and West are negative. The firmware converts them automatically to classic uncompressed APRS coordinates (`DDMM.mmN/S` and `DDDMM.mmE/W`) at startup.
+
+Example only:
+
+```cpp
+const double STATION_LATITUDE = 40.123456;
+const double STATION_LONGITUDE = 22.654321;
 ```
 
-The first periodic/boot beacon therefore has an information field such as:
+Classic uncompressed APRS positions have 0.01-minute resolution, so some rounding is expected.
 
-```text
-!3811.24N/02142.38E#PHG6750/MINTILOGLI-PATRAS/ASL.22m/
+## APRS symbol / icon
 
-Alternating memorial beacon:
-
-```text
-!3811.24N/02142.38E#PHG6750/in memory of SV3CYL SK
-```
-```
-
-The next successful periodic beacon uses `APRS_COMMENT_2`, then the sequence loops.
-
-### Symbol / icon
-
-The APRS symbol is the combination of:
+The symbol is defined by the combination:
 
 ```cpp
 APRS_SYMBOL_TABLE
 APRS_SYMBOL_CODE
 ```
 
-For a normal APRS digipeater this project currently uses `/#`.
+The default `/#` is the normal digipeater symbol.
 
-### PHG
+## PHG
 
-`APRS_PHG` is deliberately a complete APRS PHG string instead of four generator fields.
-This allows the existing RF installation value to remain exactly:
+`APRS_PHG` contains the complete optional PHG extension. The public template leaves it empty intentionally:
 
-```text
-PHG6750
+```cpp
+const char APRS_PHG[] = "";
 ```
 
-### Own beacon path
+If you have calculated and verified a value, enter all seven characters, for example:
+
+```cpp
+const char APRS_PHG[] = "PHG5130";
+```
+
+Do not copy somebody else's PHG: it describes the RF installation.
+
+## Alternating comments
+
+Two comments can rotate automatically:
+
+```cpp
+const bool BEACON_ALTERNATE_COMMENTS = true;
+const char APRS_COMMENT_1[] = "/W2 APRS DIGI";
+const char APRS_COMMENT_2[] = "/Arduino APRS Digipeater";
+```
+
+Successful periodic/startup beacons use:
+
+```text
+COMMENT_1 -> COMMENT_2 -> COMMENT_1 -> COMMENT_2 -> ...
+```
+
+Set `BEACON_ALTERNATE_COMMENTS = false` to always transmit `COMMENT_1`.
+The manual D8 beacon uses `COMMENT_1` and does not advance the periodic comment sequence.
+
+`APRS_PHG + comment` is validated against the classic 43-character position-extension/comment budget.
+
+## Own beacon path
 
 Three modes are available:
 
@@ -112,18 +146,17 @@ BEACON_PATH_FIXED
 BEACON_PATH_PROPORTIONAL
 ```
 
-Default is `BEACON_PATH_PROPORTIONAL`.
-At a 15 minute base interval the sequence is:
+The default is proportional pathing. At a 15-minute base interval:
 
 ```text
-15 min  DIRECT
-30 min  WIDE2-1
-45 min  DIRECT
-60 min  WIDE2-2
+1st beacon  DIRECT
+2nd beacon  WIDE2-1
+3rd beacon  DIRECT
+4th beacon  WIDE2-2
 repeat
 ```
 
-If a single fixed path is preferred, select `BEACON_PATH_FIXED` and edit:
+For a single fixed path, select `BEACON_PATH_FIXED` and edit:
 
 ```cpp
 BEACON_FIXED_PATH1_CALL
@@ -132,33 +165,26 @@ BEACON_FIXED_PATH2_CALL
 BEACON_FIXED_PATH2_SSID
 ```
 
-For example, `WIDE2-1` is represented as:
-
-```cpp
-const char BEACON_FIXED_PATH1_CALL[] = "WIDE2";
-const uint8_t BEACON_FIXED_PATH1_SSID = 1;
-```
+Network density varies by region. Adjust beacon paths conservatively for the local APRS network.
 
 ## Digipeater behavior
 
-The forwarding code is intentionally separate from the old 2010s ExtDigi logic.
-It implements a conservative current New-N style profile:
+The forwarding engine implements a traceable New-N style profile:
 
-- only the **first unused** AX.25 repeater address is serviced
-- explicit routing to `SV3GKD-15` is supported
-- `WIDE1-1` is traceable
-- `WIDE2-1` is traceable
-- `WIDE2-2` becomes `SV3GKD-15*,WIDE2-1`
-- the original source, destination and APRS information field are preserved
-- H / has-been-repeated bits are generated correctly in outgoing via addresses
-- duplicate suppression is **30 seconds**, with the via path excluded from the duplicate fingerprint
-- the digi will not retransmit a packet which already contains `SV3GKD-15*`
+- only the first unused AX.25 repeater address is serviced
+- explicit routing to the station's own callsign/SSID is supported
+- `WIDE1-1` and `WIDE2-n` are traceable
+- `WIDE2-2` is transformed to `MYCALL*,WIDE2-1`
+- source, destination, and APRS information field are preserved
+- H / has-been-repeated bits are handled in the outgoing via path
+- duplicate suppression defaults to 30 seconds and excludes the via path from the fingerprint
+- packets already containing this digipeater as a used repeater are not repeated again
 - RF paths containing `TCPIP` or `TCPXX` are rejected
-- obsolete `RELAY`, bare `WIDE`, and `TRACE` aliases are not serviced
-- excessive `WIDE3-n` through `WIDE7-n` requests are, by default, trapped to one local hop instead of being allowed to propagate
-- trailing path markers such as `NOGATE` / `RFONLY` are preserved; they are not treated as digipeater aliases
+- legacy `RELAY`, bare `WIDE`, and `TRACE` aliases are not serviced
+- large `WIDE3-n` through `WIDE7-n` requests can be trapped to one local hop or rejected
+- trailing markers such as `NOGATE` / `RFONLY` are preserved
 
-The normal wide-area limit is configured with:
+Relevant settings:
 
 ```cpp
 const uint8_t DIGI_MAX_WIDE_N = 2;
@@ -168,22 +194,26 @@ const uint32_t DIGI_DUPLICATE_WINDOW_MS = 30000UL;
 
 ## Manual beacon button on D8
 
-The button behavior is carried over from the working SV3GKD tracker project:
+Reference wiring:
 
-- D8 uses `INPUT_PULLUP`
-- button connects D8 to GND
+```text
+D8 ---- push button ---- GND
+```
+
+The sketch uses `INPUT_PULLUP` and provides:
+
 - 50 ms debounce
-- press must last at least 700 ms
-- beacon is requested when the button is released
-- holding longer than 5 seconds is treated as stuck/noisy and locks the button until release
-- one valid button action causes one TX attempt
-- after a successful manual beacon, the automatic beacon timer is restarted
+- minimum 700 ms valid press
+- TX request on button release
+- 5 s stuck/noisy-button lockout until release
+- one valid press = one manual TX attempt
+- successful manual beacon restarts the normal automatic-beacon timer
 
-The default manual beacon path is `WIDE2-1` and can be changed independently.
+The manual beacon path is configured independently with `MANUAL_PATH*` settings.
 
 ## Radio / AFSK timing
 
-The initial values are carried over from the working beacon-only tracker for this radio/interface:
+Conservative starting values are exposed in the USER CONFIGURATION section:
 
 ```cpp
 APRS_PREAMBLE_MS = 350
@@ -194,31 +224,25 @@ TX_POST_HOLD_MS = 30
 TX_TIMEOUT_MS = 4000
 ```
 
-These are editable in the same USER CONFIGURATION section.
-Do not shorten them until the radio is tested with another APRS decoder and actual RF deviation has been checked.
+These are hardware/radio dependent. Verify decoding and RF deviation before shortening them.
 
-## A2 receive audio and listen-before-transmit
+## Receive audio and channel-busy detection
 
-The original tracker used its audio input only for channel activity checking. A digipeater must also decode APRS from the same audio input, so the bundled LibAPRS modem has been modified to use **ADC2 / A2** continuously for AFSK receive.
+The bundled modem continuously samples **A2 / ADC2** at the modem sample rate for 1200-baud AFSK receive. Channel activity detection uses that same sample stream rather than a separate `analogRead(A2)`, avoiding disruption of modem timing.
 
-The channel-busy detector therefore uses the already-running ADC sample stream instead of calling `analogRead(A2)`, which would disturb the 9600 Hz modem sampling.
-
-It can be disabled for bench testing with:
+For bench testing only, channel-busy detection can be disabled with:
 
 ```cpp
 const bool CHANNEL_BUSY_DETECT_ENABLED = false;
 ```
 
-For normal RF digipeater operation it should remain `true`.
+For normal unattended RF service it should normally remain enabled.
 
 ## D3 PTT and D4-D7 DAC
 
-The original modem ISR wrote the full `PORTD`, which is incompatible with PTT on D3 because the DAC uses D4-D7 on the same AVR port.
-The bundled library has been changed so the DAC ISR updates only the high nibble and preserves D0-D3.
-This allows D3 PTT to remain asserted during AFSK output.
+PTT and the DAC share AVR `PORTD`. The bundled modem has been modified so its DAC ISR updates only D4-D7 and preserves D0-D3, allowing **D3 PTT** to remain asserted while AFSK samples are generated.
 
-If the physical hardware pinout changes later, D3 and D8 are configurable in the main `.ino`.
-A2 and the D4-D7 resistor ladder are low-level modem mappings and are defined in:
+D3 and D8 are high-level sketch settings. A2 and the D4-D7 DAC mapping are low-level modem mappings under:
 
 ```text
 src/LibAPRS_Digi/device.h
@@ -226,46 +250,39 @@ src/LibAPRS_Digi/device.h
 
 ## TOCALL
 
-`APBK??` is allocated to PY5BK / Bravo Tracker, so this independent firmware does not identify itself as `APBK19`.
-The current sketch uses `APZ3GK` as an experimental/local identifier.
-If this firmware is published for general use, request a dedicated TOCALL from the current APRS device-ID registry rather than treating the experimental value as a permanent allocation.
+The template uses:
 
-## Files / tabs
+```cpp
+const char APRS_TOCALL[] = "APZDIY";
+```
 
-- `SV3GKD_APRS_Digi_2026.ino` - user configuration, state, `setup()` and `loop()`
+`APZxxx` is the APRS experimental/development family. Treat this as a development placeholder, not as a claimed permanent product allocation. A project distributed as a named device/firmware should use an appropriate current APRS device identifier.
+
+## Files / Arduino tabs
+
+- `Arduino_APRS_Digipeater_2026.ino` - user configuration, state, `setup()` and `loop()`
 - `05_utils.ino` - configuration validation and AX.25 helpers
-- `10_radio.ino` - PTT, clear-channel logic and TX safety
-- `20_beacon.ino` - fixed position beacon and path scheduler
+- `10_radio.ino` - PTT, channel-busy logic and TX safety
+- `20_beacon.ino` - position beacon, comments and path scheduler
 - `30_digipeater.ino` - New-N path processing and duplicate suppression
 - `40_button.ino` - D8 manual beacon button
 - `50_diagnostics.ino` - Serial Monitor output
-- `src/LibAPRS_Digi/` - bundled / modified AFSK and AX.25 modem library
+- `src/LibAPRS_Digi/` - bundled/modified AFSK and AX.25 modem library
 
-## Validation done before packaging
+## Safety default
 
-The high-level Arduino sketch was syntax-checked with C++ stubs and the actual digipeater path engine was host-tested for:
+This public version intentionally will not transmit until:
 
-- `WIDE1-1`
-- `WIDE2-1`
-- `WIDE2-2`
-- a previously-used digi followed by `WIDE2-1` / `WIDE2-2`
-- explicit `SV3GKD-15`
-- large-N trap
-- loop rejection
-- own-source rejection while allowing another SV3GKD SSID
-- `TCPIP` rejection
-- preservation of trailing `NOGATE`
-- duplicate fingerprints ignoring the via path
+```cpp
+const bool CONFIGURATION_CONFIRMED = true;
+```
 
-An AVR toolchain is not available in the packaging environment, so the final ATmega328P compile must still be performed with **Verify** in Arduino IDE before upload.
+and the callsign passes validation. This is meant to reduce the chance that somebody flashes the repository defaults and unintentionally transmits placeholder identification or coordinates.
 
-## References / provenance
+## License
 
-The modem layer is derived from the LibAPRS / Arduino APRS modem code included in the user's previously working tracker project and retains its included license file.
-The digipeater forwarding logic in this project is newly structured around current APRS/New-N behavior rather than copying the old ExtDigi forwarding callback.
+The bundled `src/LibAPRS_Digi` directory retains its upstream license file. Keep that license with redistributed copies and review the applicable GPL/copyright obligations before publishing modified versions.
 
-Useful current references:
+## Build status
 
-- APRS Documentation Project: https://github.com/wb2osz/aprsspec
-- APRS Device ID allocations: https://github.com/aprsorg/aprs-deviceid
-- New-N / traceable WIDEn-N background: https://www.aprs.org/fix14439.html
+The high-level path engine and sketch structure were host-tested during development, but each public-repository revision should still be **Verify/Compile** tested using the Arduino IDE / Arduino AVR Boards toolchain before RF use.

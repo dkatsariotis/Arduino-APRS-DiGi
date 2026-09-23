@@ -99,7 +99,11 @@ static bool validPhg(const char *s) {
 }
 
 bool configLooksSafe() {
+  // Public-repository fail-safe: do not transmit until the operator explicitly
+  // confirms that callsign, position, PHG/comments and RF settings were reviewed.
+  if (!CONFIGURATION_CONFIRMED) return false;
   if (!validCallField(STATION_CALLSIGN, false)) return false;
+  if (strcmp(STATION_CALLSIGN, "NOCALL") == 0) return false;
   if (STATION_SSID > 15) return false;
   if (!validCallField(APRS_TOCALL, false)) return false;
   if (APRS_TOCALL_SSID > 15) return false;
@@ -107,6 +111,8 @@ bool configLooksSafe() {
   if (!positionConfigValid) return false;
   if (strlen(aprsLat) != 8) return false;
   if (strlen(aprsLon) != 9) return false;
+  // 0/0 is the public-template placeholder, not an operational station QTH.
+  if (STATION_LATITUDE == 0.0 && STATION_LONGITUDE == 0.0) return false;
 
   if (!validPhg(APRS_PHG)) return false;
 

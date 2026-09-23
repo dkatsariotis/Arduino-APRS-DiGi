@@ -1,5 +1,5 @@
 # License notice
 
-The bundled `src/LibAPRS_Digi` source was derived from the LibAPRS / Arduino APRS modem source supplied with the user's tracker project. Its original `LICENSE` file is retained in that directory and must remain with redistributed copies.
+The bundled `src/LibAPRS_Digi` source is derived from LibAPRS / Arduino APRS modem code and retains its original `LICENSE` file in that directory.
 
-The 2026 digipeater-specific modifications and sketch tabs in this package are intended to be distributed consistently with the copyleft obligations of the bundled source. Review the retained license before public redistribution.
+The sketch and digipeater-specific modifications in this repository must be distributed consistently with the licenses and copyright notices applicable to the bundled source. Keep the upstream license with redistributed copies and review its terms before publishing or conveying modified versions.
