@@ -12,7 +12,7 @@ void forcePttOn() {
   digitalWrite(PTT_PIN, PTT_ACTIVE_HIGH ? HIGH : LOW);
 }
 
-bool waitForClearChannel(unsigned long maxWaitMs) {
+bool waitForClearChannel(unsigned long maxWaitMs, bool preserveRxFrame) {
   if (!CHANNEL_BUSY_DETECT_ENABLED) return true;
 
   unsigned long started = millis();
@@ -21,9 +21,14 @@ bool waitForClearChannel(unsigned long maxWaitMs) {
   while (true) {
     if (ENABLE_WATCHDOG) wdt_reset();
 
-    // Keep decoding while waiting. The digipeater callback may reject/drop
-    // additional traffic if one relay is already pending.
-    APRS_poll();
+    // For local beacons, keep decoding while waiting. If an eligible RF relay
+    // arrives, abort the local beacon so the relay gets priority. For a pending
+    // relay, do not call APRS_poll(): its info pointer refers to the current
+    // AX25 RX buffer and must remain untouched until TX/drop.
+    if (!preserveRxFrame) {
+      APRS_poll();
+      if (relayPending) return false;
+    }
 
     if (!APRS_channelBusy()) {
       if (clearSince == 0) {
@@ -46,7 +51,7 @@ bool waitForClearChannel(unsigned long maxWaitMs) {
 
 bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
                    const uint8_t *info, uint16_t infoLen,
-                   unsigned long maxChannelWaitMs) {
+                   unsigned long maxChannelWaitMs, bool preserveRxFrame) {
   if (path == NULL || pathLen < 2 || info == NULL || infoLen == 0) {
     return false;
   }
@@ -56,7 +61,7 @@ bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
 
   radioTxActive = true;
 
-  if (!waitForClearChannel(maxChannelWaitMs)) {
+  if (!waitForClearChannel(maxChannelWaitMs, preserveRxFrame)) {
     forcePttOff();
     radioTxActive = false;
     return false;

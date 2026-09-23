@@ -59,25 +59,32 @@ static uint32_t packetHash(const AX25Msg *msg) {
   for (size_t i = 0; i < msg->len; ++i) h = fnv1aByte(h, msg->info[i]);
 
   // Deliberately do NOT include the digipeater via path.
-  return h;
+  // Reserve zero as the empty-cache sentinel.
+  return (h == 0) ? 1UL : h;
 }
 
-static bool duplicateSeen(uint32_t hash, unsigned long nowMs) {
-  for (uint8_t i = 0; i < DIGI_DUPE_CACHE_SIZE; ++i) {
-    if (!dupeCache[i].valid) continue;
-    if (dupeCache[i].hash != hash) continue;
+static uint16_t dupeNowSec() {
+  return (uint16_t)(millis() / 1000UL);
+}
 
-    if ((unsigned long)(nowMs - dupeCache[i].whenMs) <= DIGI_DUPLICATE_WINDOW_MS) {
+static bool duplicateSeen(uint32_t hash, uint16_t nowSec) {
+  uint16_t windowSec = (uint16_t)((DIGI_DUPLICATE_WINDOW_MS + 999UL) / 1000UL);
+
+  for (uint8_t i = 0; i < DIGI_DUPE_CACHE_SIZE; ++i) {
+    if (dupeCache[i].hash == 0 || dupeCache[i].hash != hash) continue;
+
+    // Unsigned 16-bit subtraction is wrap-safe. The counter wraps after about
+    // 18 hours, far longer than the duplicate window.
+    if ((uint16_t)(nowSec - dupeCache[i].whenSec) <= windowSec) {
       return true;
     }
   }
   return false;
 }
 
-static void rememberDuplicate(uint32_t hash, unsigned long nowMs) {
+static void rememberDuplicate(uint32_t hash, uint16_t nowSec) {
   dupeCache[dupeCacheNext].hash = hash;
-  dupeCache[dupeCacheNext].whenMs = nowMs;
-  dupeCache[dupeCacheNext].valid = true;
+  dupeCache[dupeCacheNext].whenSec = nowSec;
   dupeCacheNext = (uint8_t)((dupeCacheNext + 1) % DIGI_DUPE_CACHE_SIZE);
 }
 
@@ -117,7 +124,7 @@ static DigiDecision prepareRelayFrame(const AX25Msg *msg, RelayFrame &out) {
   out.pathLen = msg->rpt_count + 2;
   out.repeatedMask = msg->rpt_flags;
   out.infoLen = msg->len;
-  memcpy(out.info, msg->info, msg->len);
+  out.info = msg->info;
   out.hash = packetHash(msg);
 
   AX25Call &first = out.path[firstUnused + 2];
@@ -201,8 +208,9 @@ void aprs_msg_callback(struct AX25Msg *msg) {
 
   uint32_t hash = packetHash(msg);
   unsigned long now = millis();
+  uint16_t nowSec = (uint16_t)(now / 1000UL);
 
-  if (duplicateSeen(hash, now)) {
+  if (duplicateSeen(hash, nowSec)) {
     
     if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: duplicate within window"));
     return;
@@ -270,8 +278,9 @@ void serviceDigipeater() {
                     pendingRelay.repeatedMask,
                     pendingRelay.info,
                     pendingRelay.infoLen,
-                    DIGI_CHANNEL_WAIT_MS)) {
-    rememberDuplicate(pendingRelay.hash, millis());
+                    DIGI_CHANNEL_WAIT_MS,
+                    true)) {
+    rememberDuplicate(pendingRelay.hash, dupeNowSec());
     
     DBG_PRINT(F("DIGI TX: "));
     printPath(pendingRelay.path, pendingRelay.pathLen, pendingRelay.repeatedMask);

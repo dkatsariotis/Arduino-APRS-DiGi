@@ -345,3 +345,16 @@ This build also uses a lean LibAPRS_Digi wrapper: the legacy tracker/location/
 message configuration state was removed because the digipeater sends frames
 directly through the AX.25 API. The full AX.25 frame size, 256-byte APRS info
 relay capacity, AFSK FIFOs and duplicate cache are intentionally retained.
+
+
+## ATmega328P SRAM optimization (v2)
+
+The operational build uses a zero-copy relay queue: the pending relay references
+the current AX.25 receive buffer instead of allocating a second 256-byte information
+buffer. While a relay is pending, the sketch deliberately does not parse another
+frame until that relay has been transmitted or dropped. The AFSK ISR continues to
+fill the RX FIFO during the short relay holdoff.
+
+The duplicate cache stores a 16-bit seconds timestamp, the TX FIFO is 32 bytes,
+and the beacon information/coordinate buffers are stack-local. These changes are
+intended to preserve APRS frame capacity while freeing SRAM on an Arduino Uno.

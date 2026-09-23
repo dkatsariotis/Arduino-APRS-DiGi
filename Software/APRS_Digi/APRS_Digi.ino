@@ -184,18 +184,24 @@ const bool ENABLE_WATCHDOG = false;  // enable only after bench testing
 #define DIGI_MAX_INFO_LEN 256
 #define BEACON_INFO_BUFFER_SIZE 72
 
+// SRAM-compact duplicate entry. A 16-bit seconds counter is sufficient for
+// a 30-second duplicate window and remains wrap-safe with uint16_t subtraction.
 struct DupeEntry {
   uint32_t hash;
-  unsigned long whenMs;
-  bool valid;
+  uint16_t whenSec;
 };
 
 struct RelayFrame {
   AX25Call path[AX25_MAX_RPT + 2];
   uint8_t pathLen;
   uint8_t repeatedMask;
-  uint8_t info[DIGI_MAX_INFO_LEN];
+
+  // Zero-copy relay: info points into the AX25 receive buffer. While a relay
+  // is pending we intentionally do not parse another frame, so this memory
+  // remains valid until the packet has been transmitted or dropped.
+  const uint8_t *info;
   uint16_t infoLen;
+
   uint32_t hash;
   unsigned long queuedAtMs;
   unsigned long notBeforeMs;
@@ -224,9 +230,6 @@ bool manualBeaconRequested = false;
 bool buttonLockout = false;
 bool stationConfigValid = false;
 bool positionConfigValid = false;
-char aprsLat[9] = "";
-char aprsLon[10] = "";
-
 DupeEntry dupeCache[DIGI_DUPE_CACHE_SIZE];
 uint8_t dupeCacheNext = 0;
 
@@ -237,10 +240,10 @@ uint8_t beaconSequence = 0;
 // Forward declarations.
 void forcePttOff();
 void forcePttOn();
-bool waitForClearChannel(unsigned long maxWaitMs);
+bool waitForClearChannel(unsigned long maxWaitMs, bool preserveRxFrame);
 bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
                    const uint8_t *info, uint16_t infoLen,
-                   unsigned long maxChannelWaitMs);
+                   unsigned long maxChannelWaitMs, bool preserveRxFrame = false);
 
 void aprs_msg_callback(struct AX25Msg *msg);
 void serviceDigipeater();
@@ -273,8 +276,13 @@ void setup() {
 
   randomSeed(micros() ^ analogRead(A5));
 
+  // Validate that decimal coordinates can be represented in classic APRS
+  // format. Keep the temporary strings on the stack instead of permanently
+  // consuming SRAM.
+  char latCheck[9];
+  char lonCheck[10];
   positionConfigValid = formatAprsCoordinates(STATION_LATITUDE, STATION_LONGITUDE,
-                                              aprsLat, aprsLon);
+                                              latCheck, lonCheck);
 
   APRS_init(ADC_REFERENCE, OPEN_SQUELCH);
   APRS_setPreamble(APRS_PREAMBLE_MS);
@@ -307,10 +315,13 @@ void loop() {
     wdt_reset();
   }
 
-  // Parse at most one complete received frame per call. The patched library
-  // intentionally returns after one frame so an eligible relay can be serviced
-  // before another complete frame is drained from the FIFO.
-  APRS_poll();
+  // Parse at most one complete received frame per call. When a relay is
+  // pending, its information field points directly into the AX25 RX buffer,
+  // so do not parse another frame until that relay is sent or dropped. The
+  // AFSK ISR continues collecting bytes in the RX FIFO during the short holdoff.
+  if (!relayPending) {
+    APRS_poll();
+  }
 
   // Invalid user configuration is receive/diagnostic-only: never key PTT.
   if (!stationConfigValid) {

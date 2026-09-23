@@ -39,7 +39,7 @@ inline static uint8_t sinSample(uint16_t i) {
 #define CPU_FREQ F_CPU
 
 #define CONFIG_AFSK_RX_BUFLEN 64
-#define CONFIG_AFSK_TX_BUFLEN 64   
+#define CONFIG_AFSK_TX_BUFLEN 32   
 #define CONFIG_AFSK_RXTIMEOUT 0
 #define CONFIG_AFSK_PREAMBLE_LEN 150UL
 #define CONFIG_AFSK_TRAILER_LEN 50UL

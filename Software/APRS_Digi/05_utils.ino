@@ -109,8 +109,6 @@ bool configLooksSafe() {
   if (APRS_TOCALL_SSID > 15) return false;
 
   if (!positionConfigValid) return false;
-  if (strlen(aprsLat) != 8) return false;
-  if (strlen(aprsLon) != 9) return false;
   // 0/0 is the public-template placeholder, not an operational station QTH.
   if (STATION_LATITUDE == 0.0 && STATION_LONGITUDE == 0.0) return false;
 

@@ -90,9 +90,19 @@ void printConfiguration() {
   DBG_PRINTLN(APRS_TOCALL);
 
   DBG_PRINT(F("Position:       "));
-  DBG_PRINT(aprsLat);
-  DBG_PRINT(' ');
-  DBG_PRINTLN(aprsLon);
+#if ENABLE_SERIAL_DIAGNOSTICS
+  {
+    char lat[9];
+    char lon[10];
+    if (formatAprsCoordinates(STATION_LATITUDE, STATION_LONGITUDE, lat, lon)) {
+      DBG_PRINT(lat);
+      DBG_PRINT(' ');
+      DBG_PRINTLN(lon);
+    } else {
+      DBG_PRINTLN(F("INVALID"));
+    }
+  }
+#endif
 
   DBG_PRINT(F("Symbol:         "));
   DBG_PRINT(APRS_SYMBOL_TABLE);

@@ -2,24 +2,30 @@
 // Local station beacon generation and scheduling
 // -----------------------------------------------------------------------------
 
-static char beaconInfo[BEACON_INFO_BUFFER_SIZE];
-
 static const char *commentForPeriodicSequence(uint8_t sequence) {
   if (!BEACON_ALTERNATE_COMMENTS) return APRS_COMMENT_1;
   return (sequence & 0x01) ? APRS_COMMENT_2 : APRS_COMMENT_1;
 }
 
-static bool buildBeaconInfo(const char *comment) {
-  int written = snprintf(beaconInfo, sizeof(beaconInfo),
+static bool buildBeaconInfo(char *out, size_t outSize, const char *comment) {
+  char lat[9];
+  char lon[10];
+
+  if (!formatAprsCoordinates(STATION_LATITUDE, STATION_LONGITUDE, lat, lon)) {
+    DBG_PRINTLN(F("BEACON ERROR: invalid coordinates"));
+    return false;
+  }
+
+  int written = snprintf(out, outSize,
                          "!%s%c%s%c%s%s",
-                         aprsLat,
+                         lat,
                          APRS_SYMBOL_TABLE,
-                         aprsLon,
+                         lon,
                          APRS_SYMBOL_CODE,
                          APRS_PHG,
                          comment);
 
-  if (written < 0 || written >= (int)sizeof(beaconInfo)) {
+  if (written < 0 || written >= (int)outSize) {
     DBG_PRINTLN(F("BEACON ERROR: information field too long"));
     return false;
   }
@@ -47,7 +53,11 @@ static bool sendOwnBeaconVia(const char *label,
                              const char *path1Call, uint8_t path1Ssid,
                              const char *path2Call, uint8_t path2Ssid) {
   if (!configLooksSafe()) return false;
-  if (!buildBeaconInfo(comment)) return false;
+
+  // Beacon payload is needed only during this synchronous TX call; keep it on
+  // the stack rather than permanently occupying SRAM.
+  char beaconInfo[BEACON_INFO_BUFFER_SIZE];
+  if (!buildBeaconInfo(beaconInfo, sizeof(beaconInfo), comment)) return false;
 
   AX25Call path[4];
   uint8_t pathLen = buildOwnPath(path, path1Call, path1Ssid, path2Call, path2Ssid);
