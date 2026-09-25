@@ -31,3 +31,13 @@ This public-repository version modernizes an older Arduino/LibAPRS-style 1200-ba
 - direct, fixed, or proportional own-beacon pathing
 - independent manual-beacon path
 - public-template RF safety interlock with `CONFIGURATION_CONFIRMED`
+
+## Reliability hardening (v3)
+
+- 8-second AVR hardware watchdog enabled for unattended service
+- watchdog is disabled at the start of setup and re-enabled after initialization
+- independent 5-second pending-relay failsafe, checked before TX-state early returns
+- low-level AFSK TX abort/recovery on TX timeout so stale modem sending state cannot block future traffic
+- 60-second optional health heartbeat with RX / digi TX / duplicate / drop / beacon counters
+- runtime counters compile out with `ENABLE_SERIAL_DIAGNOSTICS=0`
+- `DIGI TX` diagnostics now print the complete TNC2-style frame including the information field

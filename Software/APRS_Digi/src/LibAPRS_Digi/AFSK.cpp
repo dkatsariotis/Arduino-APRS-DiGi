@@ -481,6 +481,22 @@ bool AFSK_channelBusy(void) {
     return (hold_samples > 0) || receiving;
 }
 
+void AFSK_abortTx(Afsk *afsk) {
+    if (afsk == NULL) return;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        AFSK_DAC_IRQ_STOP();
+        fifo_flush(&afsk->txFifo);
+        afsk->sending = false;
+        afsk->preambleLength = 0;
+        afsk->tailLength = 0;
+        afsk->txBit = 0;
+        afsk->bitStuff = false;
+        afsk->bitstuffCount = 0;
+    }
+    LED_TX_OFF();
+}
+
 void AFSK_flushRx(Afsk *afsk) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         fifo_flush(&afsk->rxFifo);

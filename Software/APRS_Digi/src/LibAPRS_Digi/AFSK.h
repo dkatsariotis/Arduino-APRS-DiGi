@@ -133,6 +133,7 @@ void AFSK_transmit(char *buffer, size_t size);
 void AFSK_poll(Afsk *afsk);
 bool AFSK_channelBusy(void);
 void AFSK_flushRx(Afsk *afsk);
+void AFSK_abortTx(Afsk *afsk);
 
 void afsk_putchar(char c);
 int afsk_getchar(void);

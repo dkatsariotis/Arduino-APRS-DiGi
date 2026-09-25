@@ -1,5 +1,5 @@
 /*
-  Arduino APRS Digipeater - Arduino Uno / ATmega328P
+  Arduino APRS Digipeater 2026 - Arduino Uno / ATmega328P
 
   Self-contained Arduino IDE project.
 
@@ -142,6 +142,11 @@ const uint16_t DIGI_RANDOM_HOLDOFF_MAX_MS = 70;
 const uint16_t DIGI_MAX_DEFER_MS = 1200;
 const uint16_t DIGI_CHANNEL_WAIT_MS = 250;
 
+// Independent failsafe for the zero-copy pending relay. This is intentionally
+// longer than DIGI_MAX_DEFER_MS and is checked even if a modem/TX state flag
+// would otherwise make serviceDigipeater() return early.
+const uint16_t DIGI_PENDING_FAILSAFE_MS = 5000;
+
 // ---- AFSK / radio timing -----------------------------------------------------
 // Conservative starting values for the reference hardware. Tune only after bench/RF testing.
 const unsigned long APRS_PREAMBLE_MS = 350;
@@ -174,7 +179,13 @@ const bool SERIAL_LOG_DROPS = true;
 // Serial text literals already use F(), so they stay in flash rather than SRAM.
 // Set these logging flags false if you want less serial/flash overhead; the
 // main SRAM saving comes from the lean LibAPRS_Digi wrapper, not from prints.
-const bool ENABLE_WATCHDOG = false;  // enable only after bench testing
+// 8 s AVR hardware watchdog. Keep this enabled for unattended operation.
+// It catches hard stalls such as a blocked modem TX FIFO or a parser deadlock.
+const bool ENABLE_WATCHDOG = true;
+
+// Printed only when ENABLE_SERIAL_DIAGNOSTICS=1. No Serial dependency or
+// heartbeat counters are retained in the production build when diagnostics=0.
+const uint16_t HEALTH_HEARTBEAT_SECONDS = 60;
 
 // =============================================================================
 // END USER CONFIGURATION
@@ -236,6 +247,27 @@ uint8_t dupeCacheNext = 0;
 unsigned long nextBeaconAt = 0;
 uint8_t beaconSequence = 0;
 
+// Reset flags captured at the start of setup(), before enabling our watchdog.
+uint8_t bootResetFlags = 0;
+
+#if ENABLE_SERIAL_DIAGNOSTICS
+struct RuntimeStats {
+  uint32_t rxPackets;
+  uint32_t digiQueued;
+  uint32_t digiTx;
+  uint32_t duplicateDrops;
+  uint32_t digiDrops;
+  uint32_t relayFailsafeDrops;
+  uint32_t txTimeouts;
+  uint32_t beaconTx;
+  uint32_t beaconFailed;
+};
+RuntimeStats runtimeStats = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+unsigned long lastHealthAtMs = 0;
+#define STAT_INC(field) do { runtimeStats.field++; } while (0)
+#else
+#define STAT_INC(field) do { } while (0)
+#endif
 
 // Forward declarations.
 void forcePttOff();
@@ -257,6 +289,8 @@ void serviceBeaconScheduler();
 void handleManualButton();
 
 void printConfiguration();
+void printBootResetCause();
+void serviceHealthDiagnostics();
 void printPacket(const AX25Msg *msg);
 void printPath(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask);
 const __FlashStringHelper *digiDecisionText(DigiDecision decision);
@@ -268,6 +302,12 @@ void setAx25Call(AX25Call &dst, const char *call, uint8_t ssid);
 bool sameAx25Call(const AX25Call &a, const char *call, uint8_t ssid);
 
 void setup() {
+  // If the previous run ended in a watchdog reset, make sure the watchdog is
+  // disabled while setup() initializes the modem and prints diagnostics.
+  bootResetFlags = MCUSR;
+  MCUSR = 0;
+  wdt_disable();
+
   forcePttOff();
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
@@ -290,6 +330,7 @@ void setup() {
 
   initDigipeater();
   stationConfigValid = positionConfigValid && configLooksSafe();
+  printBootResetCause();
   printConfiguration();
 
   if (!stationConfigValid) {
@@ -307,13 +348,15 @@ void setup() {
     wdt_enable(WDTO_8S);
   }
 
-  DBG_PRINTLN(F("Arduino APRS Digipeater ready."));
+  DBG_PRINTLN(F("Arduino APRS Digipeater 2026 ready."));
 }
 
 void loop() {
   if (ENABLE_WATCHDOG) {
     wdt_reset();
   }
+
+  serviceHealthDiagnostics();
 
   // Parse at most one complete received frame per call. When a relay is
   // pending, its information field points directly into the AX25 RX buffer,

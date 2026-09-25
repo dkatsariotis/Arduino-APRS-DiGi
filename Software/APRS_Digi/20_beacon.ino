@@ -72,10 +72,11 @@ static bool sendOwnBeaconVia(const char *label,
   if (transmitFrame(path, pathLen, 0,
                     (const uint8_t *)beaconInfo, strlen(beaconInfo),
                     BEACON_MAX_CHANNEL_WAIT_MS)) {
-    
+    STAT_INC(beaconTx);
     return true;
   }
 
+  STAT_INC(beaconFailed);
   DBG_PRINTLN(F("BEACON deferred/skipped: channel not available"));
   return false;
 }

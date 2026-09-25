@@ -22,7 +22,6 @@ void APRS_sendViaH(const AX25Call *path, size_t path_len,
 void APRS_setPreamble(unsigned long pre);
 void APRS_setTail(unsigned long tail);
 bool APRS_isSending(void);
-void APRS_abortTransmit(void);
 
 int freeMemory();
 

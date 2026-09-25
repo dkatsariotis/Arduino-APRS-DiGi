@@ -57,6 +57,10 @@ bool APRS_isSending(void) {
     return modem.sending;
 }
 
+void APRS_abortTransmit(void) {
+    AFSK_abortTx(&modem);
+}
+
 // Runtime free-SRAM diagnostic. This is not part of the modem state and costs
 // no large persistent buffer.
 extern unsigned int __heap_start;

@@ -197,7 +197,7 @@ void initDigipeater() {
 }
 
 void aprs_msg_callback(struct AX25Msg *msg) {
-  
+  STAT_INC(rxPackets);
 
   if (SERIAL_LOG_RX_PACKETS) {
     DBG_PRINT(F("RX "));
@@ -211,7 +211,7 @@ void aprs_msg_callback(struct AX25Msg *msg) {
   uint16_t nowSec = (uint16_t)(now / 1000UL);
 
   if (duplicateSeen(hash, nowSec)) {
-    
+    STAT_INC(duplicateDrops);
     if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: duplicate within window"));
     return;
   }
@@ -219,9 +219,11 @@ void aprs_msg_callback(struct AX25Msg *msg) {
   if (relayPending) {
     if (pendingRelay.hash == hash) {
       
+      STAT_INC(duplicateDrops);
       if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: duplicate already queued"));
     } else {
       
+      STAT_INC(digiDrops);
       if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: relay queue busy"));
     }
     return;
@@ -233,6 +235,7 @@ void aprs_msg_callback(struct AX25Msg *msg) {
         decision == DIGI_WIDE_REPLACE ||
         decision == DIGI_WIDE_INSERT ||
         decision == DIGI_WIDE_TRAP)) {
+    if (decision != DIGI_NO_PATH) STAT_INC(digiDrops);
     if (SERIAL_LOG_DROPS && decision != DIGI_NO_PATH) {
       DBG_PRINT(F("DIGI DROP: "));
       DBG_PRINTLN(digiDecisionText(decision));
@@ -250,6 +253,7 @@ void aprs_msg_callback(struct AX25Msg *msg) {
   }
   pendingRelay.notBeforeMs = now + holdoff;
   relayPending = true;
+  STAT_INC(digiQueued);
 
   DBG_PRINT(F("DIGI QUEUE: "));
   DBG_PRINT(digiDecisionText(decision));
@@ -259,14 +263,27 @@ void aprs_msg_callback(struct AX25Msg *msg) {
 }
 
 void serviceDigipeater() {
-  if (!relayPending || radioTxActive || APRS_isSending()) return;
+  if (!relayPending) return;
 
   unsigned long now = millis();
   unsigned long age = now - pendingRelay.queuedAtMs;
 
-  if (age > DIGI_MAX_DEFER_MS) {
-    
+  // Hard pending-relay failsafe. This check deliberately happens BEFORE the
+  // radioTxActive/APRS_isSending early return, so a stale modem state cannot
+  // hold the zero-copy RX frame forever and block all future APRS_poll() calls.
+  if (age > DIGI_PENDING_FAILSAFE_MS) {
     relayPending = false;
+    STAT_INC(relayFailsafeDrops);
+    STAT_INC(digiDrops);
+    if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: pending relay failsafe timeout"));
+    return;
+  }
+
+  if (radioTxActive || APRS_isSending()) return;
+
+  if (age > DIGI_MAX_DEFER_MS) {
+    relayPending = false;
+    STAT_INC(digiDrops);
     if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: defer timeout"));
     return;
   }
@@ -281,12 +298,18 @@ void serviceDigipeater() {
                     DIGI_CHANNEL_WAIT_MS,
                     true)) {
     rememberDuplicate(pendingRelay.hash, dupeNowSec());
-    
+    STAT_INC(digiTx);
+
     DBG_PRINT(F("DIGI TX: "));
     printPath(pendingRelay.path, pendingRelay.pathLen, pendingRelay.repeatedMask);
+    DBG_PRINT(':');
+    for (uint16_t i = 0; i < pendingRelay.infoLen; ++i) {
+      DBG_WRITE(pendingRelay.info[i]);
+    }
     DBG_PRINTLN();
   } else {
     
+    STAT_INC(digiDrops);
     if (SERIAL_LOG_DROPS) DBG_PRINTLN(F("DIGI DROP: channel busy"));
   }
 

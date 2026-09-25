@@ -92,6 +92,14 @@ bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
     delay(2);
   }
 
+  if (timedOut) {
+    // A timeout can leave the modem's sending flag/FIFO latched. Abort the
+    // low-level AFSK transmitter before returning so future beacons/relays are
+    // not permanently blocked by APRS_isSending().
+    APRS_abortTransmit();
+    STAT_INC(txTimeouts);
+  }
+
   delay(TX_POST_HOLD_MS);
   forcePttOff();
 
@@ -100,7 +108,7 @@ bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
   radioTxActive = false;
 
   if (timedOut) {
-    DBG_PRINTLN(F("TX ERROR: timeout, PTT forced OFF"));
+    DBG_PRINTLN(F("TX ERROR: timeout, modem aborted, PTT forced OFF"));
     return false;
   }
 

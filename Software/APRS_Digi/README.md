@@ -1,4 +1,4 @@
-# Arduino APRS Digipeater
+# APRS_Digi
 
 Source-only Arduino IDE project for a 1200-baud APRS digipeater on **Arduino Uno / ATmega328P**.
 No precompiled HEX or external firmware generator is required.
@@ -210,6 +210,23 @@ The sketch uses `INPUT_PULLUP` and provides:
 - successful manual beacon restarts the normal automatic-beacon timer
 
 The manual beacon path is configured independently with `MANUAL_PATH*` settings.
+
+## Unattended-operation failsafes
+
+The current build includes three complementary protections for 24/7 service:
+
+- **8-second ATmega328P hardware watchdog** (`ENABLE_WATCHDOG=true`). A hard CPU/modem stall causes an automatic MCU reset instead of leaving the digipeater dead indefinitely.
+- **5-second pending-relay failsafe** (`DIGI_PENDING_FAILSAFE_MS`). This is independent of the normal 1.2-second relay defer limit and is checked even if a stale TX/modem state would otherwise block relay servicing.
+- **AFSK TX timeout recovery**: a TX timeout explicitly aborts the low-level modem/FIFO state before releasing PTT, so a stale `APRS_isSending()` flag cannot permanently block later traffic.
+- **60-second serial health heartbeat** when `ENABLE_SERIAL_DIAGNOSTICS=1`. It reports uptime, RX/queue/TX/duplicate/drop counters, pending/channel/TX state and estimated free SRAM. The heartbeat and counters are compiled out when diagnostics are disabled.
+
+Typical diagnostic line:
+
+```text
+HEALTH up=32760s rx=1832 q=91 digiTx=87 dup=215 drop=4 fs=0 txto=0 bcn=36 bcnFail=0 pending=0 busy=0 afskTx=0 ram=830
+```
+
+For bench diagnosis, use `ENABLE_SERIAL_DIAGNOSTICS=1`. For an unattended production Uno, `0` recovers the HardwareSerial buffers and removes the diagnostic counters/prints while leaving the watchdog and relay failsafe active.
 
 ## Radio / AFSK timing
 

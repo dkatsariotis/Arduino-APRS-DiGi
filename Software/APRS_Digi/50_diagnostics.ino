@@ -2,6 +2,64 @@
 // Serial diagnostics
 // -----------------------------------------------------------------------------
 
+void printBootResetCause() {
+#if ENABLE_SERIAL_DIAGNOSTICS
+  DBG_PRINT(F("Reset cause:     "));
+  if (bootResetFlags == 0) {
+    DBG_PRINTLN(F("unknown/cleared by bootloader"));
+    return;
+  }
+
+  bool first = true;
+  if (bootResetFlags & _BV(PORF))  { DBG_PRINT(F("POWER-ON")); first = false; }
+  if (bootResetFlags & _BV(EXTRF)) { if (!first) DBG_PRINT('|'); DBG_PRINT(F("EXTERNAL")); first = false; }
+  if (bootResetFlags & _BV(BORF))  { if (!first) DBG_PRINT('|'); DBG_PRINT(F("BROWN-OUT")); first = false; }
+  if (bootResetFlags & _BV(WDRF))  { if (!first) DBG_PRINT('|'); DBG_PRINT(F("WATCHDOG")); first = false; }
+  if (!first) DBG_PRINTLN();
+  else DBG_PRINTLN(F("OTHER"));
+#endif
+}
+
+void serviceHealthDiagnostics() {
+#if ENABLE_SERIAL_DIAGNOSTICS
+  if (HEALTH_HEARTBEAT_SECONDS == 0) return;
+
+  unsigned long now = millis();
+  unsigned long intervalMs = (unsigned long)HEALTH_HEARTBEAT_SECONDS * 1000UL;
+  if ((unsigned long)(now - lastHealthAtMs) < intervalMs) return;
+  lastHealthAtMs = now;
+
+  DBG_PRINT(F("HEALTH up="));
+  DBG_PRINT(now / 1000UL);
+  DBG_PRINT(F("s rx="));
+  DBG_PRINT(runtimeStats.rxPackets);
+  DBG_PRINT(F(" q="));
+  DBG_PRINT(runtimeStats.digiQueued);
+  DBG_PRINT(F(" digiTx="));
+  DBG_PRINT(runtimeStats.digiTx);
+  DBG_PRINT(F(" dup="));
+  DBG_PRINT(runtimeStats.duplicateDrops);
+  DBG_PRINT(F(" drop="));
+  DBG_PRINT(runtimeStats.digiDrops);
+  DBG_PRINT(F(" fs="));
+  DBG_PRINT(runtimeStats.relayFailsafeDrops);
+  DBG_PRINT(F(" txto="));
+  DBG_PRINT(runtimeStats.txTimeouts);
+  DBG_PRINT(F(" bcn="));
+  DBG_PRINT(runtimeStats.beaconTx);
+  DBG_PRINT(F(" bcnFail="));
+  DBG_PRINT(runtimeStats.beaconFailed);
+  DBG_PRINT(F(" pending="));
+  DBG_PRINT(relayPending ? 1 : 0);
+  DBG_PRINT(F(" busy="));
+  DBG_PRINT(APRS_channelBusy() ? 1 : 0);
+  DBG_PRINT(F(" afskTx="));
+  DBG_PRINT(APRS_isSending() ? 1 : 0);
+  DBG_PRINT(F(" ram="));
+  DBG_PRINTLN(freeMemory());
+#endif
+}
+
 static void printAddress(const AX25Call &a) {
   DBG_PRINT(a.call);
   if (a.ssid > 0) {
@@ -76,7 +134,7 @@ const __FlashStringHelper *digiDecisionText(DigiDecision decision) {
 
 void printConfiguration() {
   DBG_PRINTLN();
-  DBG_PRINTLN(F("=== Arduino APRS Digipeater configuration ==="));
+  DBG_PRINTLN(F("=== Arduino APRS Digipeater 2026 configuration ==="));
 
   DBG_PRINT(F("Config armed:   "));
   DBG_PRINTLN(CONFIGURATION_CONFIRMED ? F("YES") : F("NO - RF TX disabled"));
@@ -143,6 +201,21 @@ void printConfiguration() {
   DBG_PRINT(F("Dupe window:    "));
   DBG_PRINT(DIGI_DUPLICATE_WINDOW_MS / 1000UL);
   DBG_PRINTLN(F(" s"));
+
+  DBG_PRINT(F("Pending failsafe: "));
+  DBG_PRINT(DIGI_PENDING_FAILSAFE_MS);
+  DBG_PRINTLN(F(" ms"));
+
+  DBG_PRINT(F("Watchdog:       "));
+  DBG_PRINTLN(ENABLE_WATCHDOG ? F("8 s enabled") : F("disabled"));
+
+  DBG_PRINT(F("Health log:     "));
+  if (HEALTH_HEARTBEAT_SECONDS > 0) {
+    DBG_PRINT(HEALTH_HEARTBEAT_SECONDS);
+    DBG_PRINTLN(F(" s"));
+  } else {
+    DBG_PRINTLN(F("disabled"));
+  }
 
   DBG_PRINTLN(F("Hardware:       RX=A2 PTT=D3 DAC=D4..D7 BUTTON=D8 TXLED=D13"));
   DBG_PRINTLN(F("DAC ladder:     D4=8k2 D5=3k9 D6=2k2 D7=1k"));
