@@ -41,3 +41,6 @@ This public-repository version modernizes an older Arduino/LibAPRS-style 1200-ba
 - 60-second optional health heartbeat with RX / digi TX / duplicate / drop / beacon counters
 - runtime counters compile out with `ENABLE_SERIAL_DIAGNOSTICS=0`
 - `DIGI TX` diagnostics now print the complete TNC2-style frame including the information field
+## RX monitor additions (2026-09-30)
+- D10/PB2 green RX monitor LED follows A2 audio activity with a separate ~333 ms visual hold; DCD channel-busy timing remains ~50 ms.
+- RX ADC min/max/peak-to-peak diagnostics are retained through `AFSK_getRxLevel()` and `serviceRxAudioDiagnostics()`; serial output is gated by `ENABLE_SERIAL_DIAGNOSTICS`.

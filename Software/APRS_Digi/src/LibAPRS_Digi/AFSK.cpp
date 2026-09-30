@@ -15,10 +15,15 @@ Afsk *AFSK_modem;
 // by the APRS demodulator. This avoids analogRead() disturbing the 9600 Hz
 // auto-triggered ADC while the receiver is active.
 static volatile uint16_t afsk_dcd_hold_samples = 0;
+// Separate visual hold timer: does not alter the channel-busy timing.
+static volatile uint16_t afsk_rx_led_hold_samples = 0;
 static int8_t afsk_dcd_state = 0;
 static int16_t afsk_dcd_center = 0;
+volatile int8_t afsk_rx_diag_min = 127;
+volatile int8_t afsk_rx_diag_max = -128;
 #define AFSK_DCD_DEADBAND 4
-#define AFSK_DCD_HOLD_SAMPLES (SAMPLERATE / 20)  // ~50 ms
+#define AFSK_DCD_HOLD_SAMPLES (SAMPLERATE / 20)  // ~50 ms for channel-busy logic
+#define AFSK_RX_LED_HOLD_SAMPLES (SAMPLERATE / 3) // ~333 ms visible RX indication
 
 
 // Forward declerations
@@ -209,15 +214,10 @@ static bool hdlcParse(Hdlc *hdlc, bool bit, FIFOBuffer *fifo) {
         // If we have, check that our output buffer is
         // not full.
         if (!fifo_isfull(fifo)) {
-            // If it isn't, we'll push the HDLC_FLAG into
-            // the buffer and indicate that we are now
-            // receiving data. For bling we also turn
-            // on the RX LED.
+            // If it isn't, push the HDLC_FLAG and begin receiving data.
+            // The RX monitor LED is driven independently by ADC/DCD activity.
             fifo_push(fifo, HDLC_FLAG);
             hdlc->receiving = true;
-            if(!LibAPRS_open_squelch) {
-                LED_RX_ON();
-            }
         } else {
             // If the buffer is full, we have a problem
             // and abort by setting the return value to     
@@ -225,7 +225,6 @@ static bool hdlcParse(Hdlc *hdlc, bool bit, FIFOBuffer *fifo) {
             
             ret = false;
             hdlc->receiving = false;
-            LED_RX_OFF();
         }
 
         // Everytime we receive a HDLC_FLAG, we reset the
@@ -248,8 +247,9 @@ static bool hdlcParse(Hdlc *hdlc, bool bit, FIFOBuffer *fifo) {
     if ((hdlc->demodulatedBits & HDLC_RESET) == HDLC_RESET) {
         // If we have, something probably went wrong at the
         // transmitting end, and we abort the reception.
+        // Do not touch the RX monitor LED here; it is owned by the
+        // ADC/DCD activity timer, not by HDLC parser state.
         hdlc->receiving = false;
-        LED_RX_OFF();
         return ret;
     }
 
@@ -305,8 +305,7 @@ static bool hdlcParse(Hdlc *hdlc, bool bit, FIFOBuffer *fifo) {
             } else {
                 // If it is, abort and return false
                 hdlc->receiving = false;
-                LED_RX_OFF();
-                ret = false;
+                    ret = false;
             }
         }
 
@@ -317,7 +316,6 @@ static bool hdlcParse(Hdlc *hdlc, bool bit, FIFOBuffer *fifo) {
         } else {
             // If it is, well, you know by now!
             hdlc->receiving = false;
-            LED_RX_OFF();
             ret = false;
         }
 
@@ -517,6 +515,7 @@ void AFSK_flushRx(Afsk *afsk) {
         afsk->status = 0;
 
         afsk_dcd_hold_samples = 0;
+        afsk_rx_led_hold_samples = 0;
         afsk_dcd_state = 0;
         afsk_dcd_center = 0;
         LED_RX_OFF();
@@ -528,7 +527,12 @@ ISR(ADC_vect) {
 
     int8_t sample = ((int16_t)(ADC >> 2) - 128);
 
+     // RX audio diagnostics
+    if (sample < afsk_rx_diag_min) afsk_rx_diag_min = sample;
+    if (sample > afsk_rx_diag_max) afsk_rx_diag_max = sample;
+
     // Count meaningful crossings around a slowly moving DC centre. This is
+    // the ISR-safe equivalent of the adaptive centre used in the working
     // the ISR-safe equivalent of the adaptive centre used in the working
     // tracker carrier detector, and tolerates modest A2 bias offsets.
     afsk_dcd_center += ((int16_t)sample - afsk_dcd_center) >> 4;
@@ -545,12 +549,22 @@ ISR(ADC_vect) {
 
     if (afsk_dcd_state != 0 && new_state != 0 && new_state != afsk_dcd_state) {
         afsk_dcd_hold_samples = AFSK_DCD_HOLD_SAMPLES;
+        // Any meaningful audio crossing lights the external RX monitor LED.
+        // A separate 333 ms hold makes activity visible without changing DCD.
+        afsk_rx_led_hold_samples = AFSK_RX_LED_HOLD_SAMPLES;
+        LED_RX_ON();
     }
     if (new_state != 0) {
         afsk_dcd_state = new_state;
     }
     if (afsk_dcd_hold_samples > 0) {
         afsk_dcd_hold_samples--;
+    }
+    if (afsk_rx_led_hold_samples > 0) {
+        afsk_rx_led_hold_samples--;
+        if (afsk_rx_led_hold_samples == 0) {
+            LED_RX_OFF();
+        }
     }
 
     AFSK_adc_isr(AFSK_modem, sample);
@@ -562,5 +576,17 @@ ISR(ADC_vect) {
         DAC_PORT = low_nibble | (AFSK_dac_isr(AFSK_modem) & 0xF0);
     } else {
         DAC_PORT = low_nibble | 0x80;
+    }
+}
+
+
+void AFSK_getRxLevel(int8_t *minVal, int8_t *maxVal)
+{
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        *minVal = afsk_rx_diag_min;
+        *maxVal = afsk_rx_diag_max;
+
+        afsk_rx_diag_min = 127;
+        afsk_rx_diag_max = -128;
     }
 }

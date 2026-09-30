@@ -375,3 +375,6 @@ fill the RX FIFO during the short relay holdoff.
 The duplicate cache stores a 16-bit seconds timestamp, the TX FIFO is 32 bytes,
 and the beacon information/coordinate buffers are stack-local. These changes are
 intended to preserve APRS frame capacity while freeing SRAM on an Arduino Uno.
+### RX monitor and RX-level diagnostics
+- D10 (PB2) is the green RX audio-activity monitor LED; D13 remains the TX LED. Use a series resistor (e.g. 330 Ω) with the external LED.
+- `serviceRxAudioDiagnostics()` reports `RXADC min`, `max`, and `pp` approximately once per second when `ENABLE_SERIAL_DIAGNOSTICS` is enabled. The capture is taken from the A2 ADC ISR; it is not a calibrated voltage measurement.

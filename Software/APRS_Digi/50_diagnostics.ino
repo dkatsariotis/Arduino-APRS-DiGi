@@ -234,3 +234,31 @@ void printConfiguration() {
   DBG_PRINTLN(F("==========================================="));
   DBG_PRINTLN();
 }
+
+void serviceRxAudioDiagnostics() {
+  if (ENABLE_SERIAL_DIAGNOSTICS) {
+    static unsigned long lastPrint = 0;
+
+    unsigned long now = millis();
+    if (now - lastPrint < 1000UL)
+      return;
+
+    lastPrint = now;
+
+    int8_t minVal;
+    int8_t maxVal;
+
+    AFSK_getRxLevel(&minVal, &maxVal);
+
+    int16_t pp = (int16_t)maxVal - (int16_t)minVal;
+
+    Serial.print(F("RXADC min="));
+    Serial.print((int)minVal);
+
+    Serial.print(F(" max="));
+    Serial.print((int)maxVal);
+
+    Serial.print(F(" pp="));
+    Serial.println(pp);
+  }
+}

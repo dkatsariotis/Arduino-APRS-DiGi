@@ -135,6 +135,8 @@ bool AFSK_channelBusy(void);
 void AFSK_flushRx(Afsk *afsk);
 void AFSK_abortTx(Afsk *afsk);
 
+void AFSK_getRxLevel(int8_t *minVal, int8_t *maxVal);
+
 void afsk_putchar(char c);
 int afsk_getchar(void);
 

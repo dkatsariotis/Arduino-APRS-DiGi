@@ -27,7 +27,7 @@
     #define LED_DDR  DDRB
 
 // Use Arduino digital pin 13 (PB5) for TX LED on ATmega328P boards.
-// RX LED remains on PB2 (Arduino D10) and is unused by the fixed beacon sketch.
+// RX monitor LED on PB2 (Arduino D10) follows audio/DCD activity on A2.
 #define LED_RX_PIN 2
 #define LED_TX_PIN 5
     #define ADC_PORT PORTC

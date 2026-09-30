@@ -390,4 +390,5 @@ void loop() {
       serviceBeaconScheduler();
     }
   }
+  serviceRxAudioDiagnostics();
 }
