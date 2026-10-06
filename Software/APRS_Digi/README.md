@@ -43,7 +43,7 @@ const bool CONFIGURATION_CONFIRMED = false;
 const char STATION_CALLSIGN[] = "NOCALL";
 const uint8_t STATION_SSID = 15;
 
-const char APRS_TOCALL[] = "APZDIY";
+const char APRS_TOCALL[] = "APZ3GK";
 const uint8_t APRS_TOCALL_SSID = 0;
 
 const double STATION_LATITUDE = 0.0;
