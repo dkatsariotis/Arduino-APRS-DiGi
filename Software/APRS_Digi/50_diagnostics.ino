@@ -11,10 +11,25 @@ void printBootResetCause() {
   }
 
   bool first = true;
-  if (bootResetFlags & _BV(PORF))  { DBG_PRINT(F("POWER-ON")); first = false; }
-  if (bootResetFlags & _BV(EXTRF)) { if (!first) DBG_PRINT('|'); DBG_PRINT(F("EXTERNAL")); first = false; }
-  if (bootResetFlags & _BV(BORF))  { if (!first) DBG_PRINT('|'); DBG_PRINT(F("BROWN-OUT")); first = false; }
-  if (bootResetFlags & _BV(WDRF))  { if (!first) DBG_PRINT('|'); DBG_PRINT(F("WATCHDOG")); first = false; }
+  if (bootResetFlags & _BV(PORF)) {
+    DBG_PRINT(F("POWER-ON"));
+    first = false;
+  }
+  if (bootResetFlags & _BV(EXTRF)) {
+    if (!first) DBG_PRINT('|');
+    DBG_PRINT(F("EXTERNAL"));
+    first = false;
+  }
+  if (bootResetFlags & _BV(BORF)) {
+    if (!first) DBG_PRINT('|');
+    DBG_PRINT(F("BROWN-OUT"));
+    first = false;
+  }
+  if (bootResetFlags & _BV(WDRF)) {
+    if (!first) DBG_PRINT('|');
+    DBG_PRINT(F("WATCHDOG"));
+    first = false;
+  }
   if (!first) DBG_PRINTLN();
   else DBG_PRINTLN(F("OTHER"));
 #endif
