@@ -118,8 +118,27 @@ const uint8_t MANUAL_PATH1_SSID = 1;
 const char MANUAL_PATH2_CALL[] = "";
 const uint8_t MANUAL_PATH2_SSID = 0;
 
-// ---- Digipeater behavior -----------------------------------------------------
-const bool DIGI_ENABLED = true;
+// ---- Operating mode ----------------------------------------------------------
+// Select exactly one operating mode. Default remains the original full DIGI mode.
+enum OperatingMode : uint8_t {
+  MODE_DIGI = 0,             // Digipeating + automatic/manual beacon + RX monitor
+  MODE_BEACON_MONITOR = 1,   // No digipeating; beacon + RX monitor
+  MODE_MONITOR_ONLY = 2      // RX monitor only; absolutely no RF transmission
+};
+const OperatingMode OPERATING_MODE = MODE_DIGI;
+
+bool modeAllowsDigipeating() {
+  return OPERATING_MODE == MODE_DIGI;
+}
+
+bool modeAllowsBeacon() {
+  return OPERATING_MODE == MODE_DIGI ||
+         OPERATING_MODE == MODE_BEACON_MONITOR;
+}
+
+bool modeAllowsTransmit() {
+  return modeAllowsDigipeating() || modeAllowsBeacon();
+}
 
 // Wide-area New-N profile: normal processing up to WIDE2-2.
 const uint8_t DIGI_MAX_WIDE_N = 2;
@@ -333,15 +352,17 @@ void setup() {
   printBootResetCause();
   printConfiguration();
 
-  if (!stationConfigValid) {
+  if (!stationConfigValid && modeAllowsTransmit()) {
     DBG_PRINTLN(F("CONFIG ERROR: RF transmission disabled until settings are corrected."));
     nextBeaconAt = ULONG_MAX;
-  } else {
+  } else if (modeAllowsBeacon() && stationConfigValid) {
     if (BEACON_ON_BOOT) {
       nextBeaconAt = millis() + ((unsigned long)BEACON_INITIAL_DELAY_SECONDS * 1000UL);
     } else {
       scheduleNextBeacon();
     }
+  } else {
+    nextBeaconAt = ULONG_MAX;
   }
 
   if (ENABLE_WATCHDOG) {
@@ -366,28 +387,42 @@ void loop() {
     APRS_poll();
   }
 
-  // Invalid user configuration is receive/diagnostic-only: never key PTT.
-  if (!stationConfigValid) {
+  // A valid station configuration is required for every transmitting mode.
+  // MONITOR_ONLY deliberately remains available with placeholder station data.
+  if (!stationConfigValid && modeAllowsTransmit()) {
     forcePttOff();
     return;
   }
 
+  // Hard TX inhibit for monitor-only mode. RX polling above remains active.
+  if (!modeAllowsTransmit()) {
+    forcePttOff();
+    manualBeaconRequested = false;
+    relayPending = false;
+    serviceRxAudioDiagnostics();
+    return;
+  }
+
   // RF relays have priority over local beacons.
-  serviceDigipeater();
+  if (modeAllowsDigipeating()) {
+    serviceDigipeater();
+  }
 
-  handleManualButton();
+  if (modeAllowsBeacon()) {
+    handleManualButton();
 
-  if (!relayPending && !radioTxActive) {
-    if (manualBeaconRequested) {
-      // Preserve the working tracker behavior: one button action = one TX
-      // attempt. If the channel is busy, press the button again later.
-      bool sent = sendManualBeacon();
-      manualBeaconRequested = false;
-      if (sent) {
-        scheduleNextBeacon();
+    if (!relayPending && !radioTxActive) {
+      if (manualBeaconRequested) {
+        // Preserve the working tracker behavior: one button action = one TX
+        // attempt. If the channel is busy, press the button again later.
+        bool sent = sendManualBeacon();
+        manualBeaconRequested = false;
+        if (sent) {
+          scheduleNextBeacon();
+        }
+      } else {
+        serviceBeaconScheduler();
       }
-    } else {
-      serviceBeaconScheduler();
     }
   }
   serviceRxAudioDiagnostics();
