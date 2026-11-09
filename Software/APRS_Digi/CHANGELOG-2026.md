@@ -44,3 +44,9 @@ This public-repository version modernizes an older Arduino/LibAPRS-style 1200-ba
 ## RX monitor additions (2026-09-30)
 - D10/PB2 green RX monitor LED follows A2 audio activity with a separate ~333 ms visual hold; DCD channel-busy timing remains ~50 ms.
 - RX ADC min/max/peak-to-peak diagnostics are retained through `AFSK_getRxLevel()` and `serviceRxAudioDiagnostics()`; serial output is gated by `ENABLE_SERIAL_DIAGNOSTICS`.
+
+
+## Operating modes
+- Added configurable `MODE_DIGI`, `MODE_BEACON_MONITOR` and `MODE_MONITOR_ONLY` selection.
+- Kept `MODE_DIGI` as the default to preserve existing operation.
+- Added central transmit and PTT interlocks; monitor-only continues RX polling/diagnostics and blocks automatic, manual and digipeater transmissions.
