@@ -378,3 +378,14 @@ intended to preserve APRS frame capacity while freeing SRAM on an Arduino Uno.
 ### RX monitor and RX-level diagnostics
 - D10 (PB2) is the green RX audio-activity monitor LED; D13 remains the TX LED. Use a series resistor (e.g. 330 Ω) with the external LED.
 - `serviceRxAudioDiagnostics()` reports `RXADC min`, `max`, and `pp` approximately once per second when `ENABLE_SERIAL_DIAGNOSTICS` is enabled. The capture is taken from the A2 ADC ISR; it is not a calibrated voltage measurement.
+
+
+## Operating modes
+
+Select the operating mode in the **USER CONFIGURATION** section of `APRS_Digi.ino` by changing only `OPERATING_MODE`:
+
+- `MODE_DIGI` (default): digipeating, automatic/manual beaconing and RX monitoring.
+- `MODE_BEACON_MONITOR`: no packet digipeating; automatic/manual beaconing and RX monitoring remain enabled.
+- `MODE_MONITOR_ONLY`: RX decoding/monitoring only. All RF transmit paths are inhibited, including digipeater relays, scheduled/boot beacons and the manual D8 beacon button.
+
+The default is deliberately `MODE_DIGI` to preserve the previous operating behavior. The central `transmitFrame()` gate and the PTT-on interlock provide a second layer of protection in `MODE_MONITOR_ONLY`. RX polling and diagnostics continue in monitor-only mode, even when station TX configuration is not armed.
