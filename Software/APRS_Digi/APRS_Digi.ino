@@ -24,8 +24,9 @@
 #define ADC_REFERENCE REF_5V
 #define OPEN_SQUELCH false
 
-// Master compile-time serial diagnostics switch.
-// 0 = no Arduino Serial dependency/buffers; 1 = Serial Monitor diagnostics.
+// Independent compile-time Serial output switches.
+// Packet monitor can run by itself, without the additional diagnostics.
+#define ENABLE_SERIAL_MONITOR 0
 #define ENABLE_SERIAL_DIAGNOSTICS 0
 
 #if ENABLE_SERIAL_DIAGNOSTICS
@@ -38,6 +39,22 @@
   #define DBG_PRINT(...)    do { } while (0)
   #define DBG_PRINTLN(...)  do { } while (0)
   #define DBG_WRITE(...)    do { } while (0)
+#endif
+
+#if ENABLE_SERIAL_MONITOR
+  #define MON_PRINT(...)    Serial.print(__VA_ARGS__)
+  #define MON_PRINTLN(...)  Serial.println(__VA_ARGS__)
+  #define MON_WRITE(...)    Serial.write(__VA_ARGS__)
+#else
+  #define MON_PRINT(...)    do { } while (0)
+  #define MON_PRINTLN(...)  do { } while (0)
+  #define MON_WRITE(...)    do { } while (0)
+#endif
+
+#if ENABLE_SERIAL_DIAGNOSTICS || ENABLE_SERIAL_MONITOR
+  #define SERIAL_OUTPUT_BEGIN(...) Serial.begin(__VA_ARGS__)
+#else
+  #define SERIAL_OUTPUT_BEGIN(...) do { } while (0)
 #endif
 
 // =============================================================================
@@ -330,7 +347,7 @@ void setup() {
   forcePttOff();
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  DBG_BEGIN(SERIAL_BAUD);
+  SERIAL_OUTPUT_BEGIN(SERIAL_BAUD);
   delay(100);
 
   randomSeed(micros() ^ analogRead(A5));
