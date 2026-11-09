@@ -95,23 +95,35 @@ void printPath(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask) {
   }
 }
 
+#if ENABLE_SERIAL_MONITOR
+static void printMonitorAddress(const AX25Call &a) {
+  MON_PRINT(a.call);
+  if (a.ssid > 0) {
+    MON_PRINT('-');
+    MON_PRINT(a.ssid);
+  }
+}
+#endif
+
 void printPacket(const AX25Msg *msg) {
-  printAddress(msg->src);
-  DBG_PRINT('>');
-  printAddress(msg->dst);
+#if ENABLE_SERIAL_MONITOR
+  printMonitorAddress(msg->src);
+  MON_PRINT('>');
+  printMonitorAddress(msg->dst);
 
   int8_t lastUsed = lastUsedRepeater(msg->rpt_flags, msg->rpt_count);
   for (uint8_t i = 0; i < msg->rpt_count; ++i) {
-    DBG_PRINT(',');
-    printAddress(msg->rpt_list[i]);
-    if ((int8_t)i == lastUsed) DBG_PRINT('*');
+    MON_PRINT(',');
+    printMonitorAddress(msg->rpt_list[i]);
+    if ((int8_t)i == lastUsed) MON_PRINT('*');
   }
 
-  DBG_PRINT(':');
+  MON_PRINT(':');
   for (size_t i = 0; i < msg->len; ++i) {
-    DBG_WRITE(msg->info[i]);
+    MON_WRITE(msg->info[i]);
   }
-  DBG_PRINTLN();
+  MON_PRINTLN();
+#endif
 }
 
 const __FlashStringHelper *digiDecisionText(DigiDecision decision) {
