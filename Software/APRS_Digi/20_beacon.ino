@@ -52,7 +52,7 @@ static bool sendOwnBeaconVia(const char *label,
                              const char *comment,
                              const char *path1Call, uint8_t path1Ssid,
                              const char *path2Call, uint8_t path2Ssid) {
-  if (!configLooksSafe()) return false;
+  if (!modeAllowsBeacon() || !configLooksSafe()) return false;
 
   // Beacon payload is needed only during this synchronous TX call; keep it on
   // the stack rather than permanently occupying SRAM.
@@ -161,6 +161,7 @@ void scheduleNextBeacon() {
 }
 
 void serviceBeaconScheduler() {
+  if (!modeAllowsBeacon()) return;
   if ((long)(millis() - nextBeaconAt) < 0) {
     return;
   }
