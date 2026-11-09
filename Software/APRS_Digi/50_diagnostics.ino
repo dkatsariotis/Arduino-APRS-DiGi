@@ -189,8 +189,13 @@ void printConfiguration() {
   else if (BEACON_PATH_MODE == BEACON_PATH_FIXED) DBG_PRINTLN(F("FIXED"));
   else DBG_PRINTLN(F("PROPORTIONAL DIRECT / WIDE2-1 / DIRECT / WIDE2-2"));
 
+  DBG_PRINT(F("Operating mode: "));
+  if (OPERATING_MODE == MODE_DIGI) DBG_PRINTLN(F("DIGI"));
+  else if (OPERATING_MODE == MODE_BEACON_MONITOR) DBG_PRINTLN(F("BEACON + MONITOR"));
+  else DBG_PRINTLN(F("MONITOR ONLY"));
+
   DBG_PRINT(F("Digipeater:     "));
-  DBG_PRINTLN(DIGI_ENABLED ? F("enabled") : F("disabled"));
+  DBG_PRINTLN(modeAllowsDigipeating() ? F("enabled") : F("disabled"));
 
   DBG_PRINT(F("WIDE max n:     "));
   DBG_PRINTLN(DIGI_MAX_WIDE_N);
