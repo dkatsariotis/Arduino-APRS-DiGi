@@ -199,10 +199,12 @@ void initDigipeater() {
 void aprs_msg_callback(struct AX25Msg *msg) {
   STAT_INC(rxPackets);
 
+#if ENABLE_SERIAL_MONITOR
   if (SERIAL_LOG_RX_PACKETS) {
-    DBG_PRINT(F("RX "));
+    MON_PRINT(F("RX "));
     printPacket(msg);
   }
+#endif
 
   if (!modeAllowsDigipeating() || !stationConfigValid) return;
 
