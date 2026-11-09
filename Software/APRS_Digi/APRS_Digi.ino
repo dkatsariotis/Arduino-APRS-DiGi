@@ -269,6 +269,11 @@ enum DigiDecision : uint8_t {
   DIGI_DUPLICATE
 };
 
+// Forward declarations for functions implemented in 30_digipeater.ino.
+// These prevent Arduino IDE auto-prototype ordering problems.
+static void replaceRepeaterWithOwnCall(RelayFrame &out, uint8_t rptIndex);
+static DigiDecision prepareRelayFrame(const AX25Msg *msg, RelayFrame &out);
+
 // Runtime state.
 RelayFrame pendingRelay;
 bool relayPending = false;
