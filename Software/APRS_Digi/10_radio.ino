@@ -8,6 +8,11 @@ void forcePttOff() {
 }
 
 void forcePttOn() {
+  // Last-line safety interlock: no caller can key the radio in MONITOR_ONLY.
+  if (!modeAllowsTransmit()) {
+    forcePttOff();
+    return;
+  }
   pinMode(PTT_PIN, OUTPUT);
   digitalWrite(PTT_PIN, PTT_ACTIVE_HIGH ? HIGH : LOW);
 }
@@ -52,6 +57,11 @@ bool waitForClearChannel(unsigned long maxWaitMs, bool preserveRxFrame) {
 bool transmitFrame(const AX25Call *path, uint8_t pathLen, uint8_t repeatedMask,
                    const uint8_t *info, uint16_t infoLen,
                    unsigned long maxChannelWaitMs, bool preserveRxFrame) {
+  // Central TX gate protects every packet source (relay, beacon or button).
+  if (!modeAllowsTransmit()) {
+    forcePttOff();
+    return false;
+  }
   if (path == NULL || pathLen < 2 || info == NULL || infoLen == 0) {
     return false;
   }
