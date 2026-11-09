@@ -204,7 +204,7 @@ void aprs_msg_callback(struct AX25Msg *msg) {
     printPacket(msg);
   }
 
-  if (!DIGI_ENABLED || !stationConfigValid) return;
+  if (!modeAllowsDigipeating() || !stationConfigValid) return;
 
   uint32_t hash = packetHash(msg);
   unsigned long now = millis();
@@ -263,6 +263,10 @@ void aprs_msg_callback(struct AX25Msg *msg) {
 }
 
 void serviceDigipeater() {
+  if (!modeAllowsDigipeating()) {
+    relayPending = false;
+    return;
+  }
   if (!relayPending) return;
 
   unsigned long now = millis();
