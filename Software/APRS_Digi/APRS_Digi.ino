@@ -72,7 +72,7 @@ const uint8_t STATION_SSID = 15;           // choose an SSID appropriate for you
 // APZxxx is the APRS experimental/development TOCALL family. If this firmware
 // becomes a named/distributed product, obtain/use an appropriate registered
 // device identifier instead of treating this placeholder as a permanent ID.
-const char APRS_TOCALL[] = "APZDIY";
+const char APRS_TOCALL[] = "AP3GKD";
 const uint8_t APRS_TOCALL_SSID = 0;
 
 // ---- Position / symbol / PHG / comments -------------------------------------
